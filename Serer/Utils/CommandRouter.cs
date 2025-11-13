@@ -30,11 +30,11 @@ namespace Server
         /// <summary>
         /// Маршрутизация команды на соответствующий обработчик.
         /// </summary>
-        public void Route(string command, string[] parts, NetworkStream stream, ServerContext context)
+        public void Route(string command, string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             if (string.IsNullOrWhiteSpace(command))
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("Invalid command"));
+                TcpServer.SendResponse(stream, ServerResponse.Error("Неверная команда"));
                 return;
             }
 
@@ -43,20 +43,19 @@ namespace Server
             {
                 try
                 {
-                    handler.Handle(parts, stream, context);
+                    handler.Handle(parts, stream, context, session);
                 }
                 catch (Exception ex)
                 {
-                    // Единая обработка ошибок для обработчиков
-                    var msg = "ERROR:" + ex.Message;
-                    TcpServer.SendResponse(stream, ServerResponse.Error(msg));
-                    Console.WriteLine("Handler error for command " + command + ": " + ex.Message);
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при обработке команды", new { error = ex.Message }));
+                    Console.WriteLine($"Handler error for command {command}: {ex.Message}");
                 }
             }
             else
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("UnknownCommand"));
+                TcpServer.SendResponse(stream, ServerResponse.Error("Неизвестная команда: " + command));
             }
         }
+
     }
 }

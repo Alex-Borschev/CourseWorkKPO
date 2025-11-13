@@ -5,6 +5,7 @@
 // 2) Это улучшает читабельность и тестируемость (SRP).
 
 using Server;
+using Server.Database;
 using System;
 
 namespace Server
@@ -17,6 +18,9 @@ namespace Server
             try
             {
                 TcpServer.Run(); // Всё управление сервером перенесено в TcpServer.
+                var db = new DatabaseService("mongodb://localhost:27017", "EthernetDictionary");
+                var context = new ServerContext(db);
+
             }
             catch (Exception ex)
             {

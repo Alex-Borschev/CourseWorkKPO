@@ -16,7 +16,7 @@ namespace Server.Handlers
     {
         public string Command => "ADD_TERM";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
@@ -38,8 +38,10 @@ namespace Server.Handlers
                 }
 
                 // Загружаем существующую базу
-                TermList termList = JsonHelper.ReadJsonFile<TermList>(context.TermsFilePath)
-                    ?? new TermList { terms = new List<Term>() };
+                /*TermList termList = JsonHelper.ReadJsonFile<TermList>(context.TermsFilePath)
+                    ?? new TermList { terms = new List<Term>() };*/
+                TermList termList = new TermList { terms = context.Db.GetAllTerms() ?? new List<Term>() };
+
 
                 // Проверяем наличие дубликатов
                 if (termList.terms.Any(t => t.term.Equals(newTerm.term, StringComparison.OrdinalIgnoreCase)))
@@ -54,7 +56,15 @@ namespace Server.Handlers
                 termList.terms.Add(newTerm);
 
                 // Сохраняем обновлённый список
-                JsonHelper.WriteJsonFile(context.TermsFilePath, termList);
+                foreach (var term in termList.terms)
+                {
+                    var existing = context.Db.GetTermByName(term.term);
+                    if (existing == null)
+                        context.Db.AddTerm(term);
+                    else
+                        context.Db.UpdateTerm(term);
+                }
+
 
                 // Отправляем подтверждение
                 TcpServer.SendResponse(stream, ServerResponse.Ok("Термин добавлен успешно", new { term = newTerm.term }));
@@ -71,12 +81,12 @@ namespace Server.Handlers
     {
         public string Command => "DELETE_TERM";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
                 string termName = parts[1];
-                var termList = JsonHelper.ReadJsonFile<TermList>(context.TermsFilePath);
+                TermList termList = new TermList { terms = context.Db.GetAllTerms() ?? new List<Term>() };
 
                 var term = termList?.terms?.FirstOrDefault(t =>
                     t.term.Equals(termName, StringComparison.OrdinalIgnoreCase));
@@ -88,7 +98,15 @@ namespace Server.Handlers
                 }
 
                 termList.terms.Remove(term);
-                JsonHelper.WriteJsonFile(context.TermsFilePath, termList);
+                foreach (var t in termList.terms)
+                {
+                    var existing = context.Db.GetTermByName(t.term);
+                    if (existing == null)
+                        context.Db.AddTerm(t);
+                    else
+                        context.Db.UpdateTerm(t);
+                }
+
                 TcpServer.SendResponse(stream, ServerResponse.Ok("Термин успешно удалён", new { term = termName }));
             }
             catch (Exception ex)
@@ -102,12 +120,12 @@ namespace Server.Handlers
     {
         public string Command => "TERM_VISITED";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
                 string termName = parts[1];
-                var termList = JsonHelper.ReadJsonFile<TermList>(context.TermsFilePath);
+                TermList termList = new TermList { terms = context.Db.GetAllTerms() ?? new List<Term>() };
 
                 var term = termList?.terms?.FirstOrDefault(t =>
                     t.term.Equals(termName, StringComparison.OrdinalIgnoreCase));
@@ -118,8 +136,18 @@ namespace Server.Handlers
                     return;
                 }
 
-                term.lastAccessed = DateTime.Now; // ✅ исправлено (раньше присваивалась строка)
-                JsonHelper.WriteJsonFile(context.TermsFilePath, termList);
+                term.lastAccessed = DateTime.Now;
+                foreach (var t in termList.terms)
+                {
+                    var existing = context.Db.GetTermByName(t.term);
+                    if (existing == null)
+                        context.Db.AddTerm(t);
+                    else
+                        context.Db.UpdateTerm(t);
+                }
+
+
+
 
                 TcpServer.SendResponse(stream, ServerResponse.Ok("Обновлено время последнего доступа",
                     new { term = termName, term.lastAccessed }));

@@ -18,7 +18,7 @@ namespace Server.Handlers
     {
         public string Command => "AUTH";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             var data = ParseUserData(parts);
             if (data == null)
@@ -27,24 +27,26 @@ namespace Server.Handlers
                 return;
             }
 
-            var (role, login, password) = data.Value;
-            var user = context.Users.FirstOrDefault(u =>
-                u.personality == role && u.login == login && u.password == password);
+            var login = data.Value.Login;
+            var password = data.Value.Password;
+
+            var user = context.Db.FindUser(login, password);
 
             if (user != null)
-                TcpServer.SendResponse(stream, ServerResponse.Ok("Авторизация успешна", new { login, role }));
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Авторизация успешна", new { login, role = user.personality }));
             else
                 TcpServer.SendResponse(stream, ServerResponse.Error("Неверные учетные данные"));
         }
 
-        private (string Role, string Login, string Password)? ParseUserData(string[] parts)
+
+
+        private (string Login, string Password)? ParseUserData(string[] parts)
         {
             try
             {
-                string role = parts[1].Split('=')[1];
-                string login = parts[2].Split('=')[1];
-                string password = parts[3].Split('=')[1];
-                return (role, login, password);
+                string login = parts[1].Split('=')[1];
+                string password = parts[2].Split('=')[1];
+                return (login, password);
             }
             catch
             {
