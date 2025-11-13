@@ -1,16 +1,7 @@
-﻿// TcpServer.cs
-// Основная логика сервера: запуск TcpListener, приём клиентов, чтение сообщений и делегирование
-// их обработчику (CommandRouter).
-//
-// Изменения и причины:
-// - Вынесено из монолитного Program.cs, теперь класс отвечает только за сетевую часть.
-// - Введён CommandRouter для маршрутизации команд (паттерн Command).
-// - Введён ClientContext для передачи общих зависимостей обработчикам.
-// - Логирование подключений вынесено в FileLogger.
-// - JSON-утилиты унифицированы в JsonHelper.
-// - Работа с пользователями загружается один раз и передаётся через контекст (минимальная DI).
+﻿// TcpServer.cs (обновлён)
+// - ServerContext теперь содержит DatabaseService Db;
+// - Регистрация обработчиков остаётся, обработчики могут использовать context.Db.
 
-using SharedLibrary;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -19,73 +10,40 @@ using System.Threading;
 using System.Collections.Generic;
 using System.IO;
 using Server.Database;
+using System.Text.Json;
 
 namespace Server
 {
     public class ServerContext
     {
-        public DatabaseService Db { get; }
-        public List<SharedLibrary.Users> Users { get; set; }
-
-        // Репозитории для работы с MongoDB
-        public UserRepository UsersRepo { get; set; }
-        public TermRepository TermsRepo { get; set; }
-
-        // Роутер для команд
+        public string TermsFilePath { get; set; }
         public CommandRouter Router { get; set; }
+        public DatabaseService Db { get; set; }
+
+        public ServerContext() { }
 
         public ServerContext(DatabaseService db)
         {
             Db = db;
-            Users = db.GetAllUsers();
+            Router = new CommandRouter();
         }
-
-        // Пустой конструктор для MongoDB
-        public ServerContext() { }
     }
-
-
 
     public static class TcpServer
     {
         private static int clientCounter = 0;
         private const int PORT = 8888;
-        private const string TERMS_JSON = "data2.json";
-        private const string USERS_FILE = "users.txt";
 
-        public static void Run()
+        public static void Run(Server.Database.DatabaseService dbService = null)
         {
-            // Создаём контекст MongoDB
-            var mongo = new Server.Database.MongoContext("mongodb://localhost:27017", "EthernetDictionaryDB");
-            var usersRepo = new Server.Database.UserRepository(mongo);
-            var termsRepo = new Server.Database.TermRepository(mongo);
+            // Если dbService передан — используем его; иначе создаём по умолчанию.
+            var db = dbService ?? new Server.Database.DatabaseService();
 
-            var context = new ServerContext
+            var context = new ServerContext(db)
             {
-                UsersRepo = usersRepo,
-                TermsRepo = termsRepo,
-                Router = new CommandRouter()
+                Router = new CommandRouter() // Router создаётся внутри контекста, но на всякий случай
             };
 
-            RegisterAllHandlers(context);
-
-            TcpListener listener = new TcpListener(IPAddress.Any, PORT);
-            listener.Start();
-            Console.WriteLine($"Сервер запущен на порту {PORT}...");
-
-            while (true)
-            {
-                TcpClient client = listener.AcceptTcpClient();
-                int clientId = Interlocked.Increment(ref clientCounter);
-
-                Thread clientThread = new Thread(() => HandleClient(client, clientId, context));
-                clientThread.IsBackground = true;
-                clientThread.Start();
-            }
-        }
-
-        private static void RegisterAllHandlers(ServerContext context)
-        {
             context.Router.RegisterHandler(new Server.Handlers.AuthHandler());
             context.Router.RegisterHandler(new Server.Handlers.RegisterHandler());
             context.Router.RegisterHandler(new Server.Handlers.GetTermsHandler());
@@ -100,17 +58,22 @@ namespace Server
             context.Router.RegisterHandler(new Server.Handlers.SuggestEditHandler());
             context.Router.RegisterHandler(new Server.Handlers.GetUsersHandler());
             context.Router.RegisterHandler(new Server.Handlers.RateTermHandler());
+
+            TcpListener listener = new TcpListener(IPAddress.Any, 8888);
+            listener.Start();
+            Console.WriteLine("Server started on port 8888...");
+
+            while (true)
+            {
+                TcpClient client = listener.AcceptTcpClient();
+                ThreadPool.QueueUserWorkItem(_ => HandleClient(client, context));
+            }
         }
 
-        private static void HandleClient(TcpClient client, int clientId, ServerContext globalContext)
+        private static void HandleClient(TcpClient client, ServerContext context)
         {
             string clientAddress = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
-            int threadId = Thread.CurrentThread.ManagedThreadId;
-            string connectionTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
-            FileLogger.LogConnection(clientAddress, connectionTime, threadId);
-
-            var session = new ClientSession(clientAddress);
+            var session = new ClientSession(clientAddress); // создаём сессию для клиента
 
             try
             {
@@ -122,29 +85,44 @@ namespace Server
                     while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
                     {
                         string received = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
-                        Console.WriteLine($"[{clientAddress}] -> {received}");
 
-                        string[] parts = received.Split(new[] { ';' }, StringSplitOptions.None);
-                        string command = parts.Length > 0 ? parts[0] : string.Empty;
+                        var envelope = JsonSerializer.Deserialize<ClientEnvelope>(received);
+                        if (envelope == null || envelope.Command == null)
+                        {
+                            TcpServer.SendResponse(stream, ServerResponse.Error("Некорректный формат сообщения"));
+                            continue;
+                        }
 
-                        // Теперь передаем сессию в Router
-                        globalContext.Router.Route(command, parts, stream, globalContext, session);
+                        context.Router.Route(
+                            envelope.Command,
+                            envelope.Payload, // <-- теперь Payload передаётся в Router
+                            stream,
+                            context,
+                            session
+                        );
+
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка клиента {clientAddress} поток {threadId}: {ex.Message}");
+                Console.WriteLine($"Client {clientAddress} error: {ex.Message}");
             }
             finally
             {
                 client.Close();
-                Console.WriteLine($"Клиент {clientAddress} поток {threadId} отключился.");
             }
         }
 
+        public class ClientEnvelope
+        {
+            public string Command { get; set; }
+            public JsonElement Payload { get; set; }
+        }
 
-        public static void SendResponse(NetworkStream stream, ServerResponse response)
+
+        // SendResponse оставляем без изменений (используется для сериализации ServerResponse)
+        public static void SendResponse(System.Net.Sockets.NetworkStream stream, ServerResponse response)
         {
             if (stream == null || !stream.CanWrite || response == null) return;
             try

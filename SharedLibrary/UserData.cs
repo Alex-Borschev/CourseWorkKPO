@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,9 +10,13 @@ namespace SharedLibrary
 {
     public class UserData
     {
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; }
         public string Username { get; set; }
 
         public string Personality { get; set; }
+        public string Password { get; set; }
         public DateTime RegistrationDate { get; set; }
         public List<string> Favorites { get; set; }
         public List<RatedTerm> RatedTerms { get; set; }
@@ -39,6 +45,11 @@ namespace SharedLibrary
         public DateTime Timestamp { get; set; }
         public string NotedTerm { get; set; }
         public string NotedData { get; set; }
+    }
+
+    public class UserDataList
+    {
+        public List<UserData> userData { get; set; }
     }
 
 }
