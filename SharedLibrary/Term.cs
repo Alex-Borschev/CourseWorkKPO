@@ -8,7 +8,7 @@ namespace SharedLibrary
 {
     public class Term
     {
-        public string term { get; set; } 
+        public string term { get; set; }
         public string definition { get; set; }
         public string category { get; set; }
         public List<string> tags { get; set; }

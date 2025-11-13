@@ -13,10 +13,10 @@ namespace SharedLibrary
         public string Personality { get; set; }
         public DateTime RegistrationDate { get; set; }
         public List<string> Favorites { get; set; }
-        public List<RatedTerm> RatedTerms { get; set; } 
+        public List<RatedTerm> RatedTerms { get; set; }
 
         public List<UserNotes> Notes { get; set; }
-        public List<MessageEntry> Messages { get; set; } 
+        public List<MessageEntry> Messages { get; set; }
 
     }
 
@@ -38,7 +38,7 @@ namespace SharedLibrary
     {
         public DateTime Timestamp { get; set; }
         public string NotedTerm { get; set; }
-        public string  NotedData { get; set; }
+        public string NotedData { get; set; }
     }
 
 }

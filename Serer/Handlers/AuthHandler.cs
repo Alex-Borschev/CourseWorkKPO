@@ -9,7 +9,6 @@
 
 using SharedLibrary;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 
@@ -24,19 +23,20 @@ namespace Server.Handlers
             var data = ParseUserData(parts);
             if (data == null)
             {
-                TcpServer.SendMessage(stream, "InvalidData");
+                TcpServer.SendResponse(stream, ServerResponse.Error("Некорректные данные авторизации"));
                 return;
             }
 
             var (role, login, password) = data.Value;
-            string result = CheckCredentials(context.Users, role, login, password);
-            TcpServer.SendMessage(stream, result);
-            Console.WriteLine($"[AUTH] {login} -> {result}");
+            var user = context.Users.FirstOrDefault(u =>
+                u.personality == role && u.login == login && u.password == password);
+
+            if (user != null)
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Авторизация успешна", new { login, role }));
+            else
+                TcpServer.SendResponse(stream, ServerResponse.Error("Неверные учетные данные"));
         }
 
-        /// <summary>
-        /// Парсинг данных пользователя из формата: AUTH;Role=...;Login=...;Password=...
-        /// </summary>
         private (string Role, string Login, string Password)? ParseUserData(string[] parts)
         {
             try
@@ -50,24 +50,6 @@ namespace Server.Handlers
             {
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Проверка логина и пароля.
-        /// </summary>
-        private string CheckCredentials(List<Users> users, string role, string login, string password)
-        {
-            bool userExists = users.Any(u =>
-                u.personality == role &&
-                u.login == login &&
-                u.password == password);
-
-            if (role == "Администратор" && userExists)
-                return "Admin";
-            else if (role == "Пользователь" && userExists)
-                return "User";
-            else
-                return "Invalid";
         }
     }
 }

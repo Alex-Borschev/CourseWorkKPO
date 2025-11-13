@@ -9,53 +9,52 @@
 
 using SharedLibrary;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
-using System.Text.Json;
 
 namespace Server.Handlers
 {
-    // --- SUGG_EDIT ---
     public class SuggestEditHandler : ICommandHandler
     {
-        public string Command => "SUGG_EDIT";
+        public string Command => "SUGGEST_EDIT";
 
         public void Handle(string[] parts, NetworkStream stream, ServerContext context)
         {
-            string loginFrom = parts[1];
-            string term = parts[2];
-            string content = parts[3];
-            string theme = "«ПРАВКА»" + term;
-
-            foreach (var admin in context.Users.Where(u => u.personality == "Администратор"))
+            try
             {
-                var data = UserDataHelper.Load(admin.login);
-                if (data == null) continue;
+                string termName = parts[1];
+                string suggestion = parts[2];
 
-                data.Messages.Add(new MessageEntry
-                {
-                    Timestamp = DateTime.Now,
-                    Theme = theme,
-                    Content = content,
-                    Author = loginFrom
-                });
-                UserDataHelper.Save(admin.login, data);
+                string suggestionFile = "suggestions.txt";
+                File.AppendAllText(suggestionFile, $"{termName}:{suggestion}{Environment.NewLine}");
+
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Предложение на редактирование отправлено",
+                    new { term = termName, suggestion }));
             }
-
-            TcpServer.SendMessage(stream, "Предложение правки доставлено");
+            catch (Exception ex)
+            {
+                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при отправке предложения", new { error = ex.Message }));
+            }
         }
     }
 
-    // --- GET_USERS ---
     public class GetUsersHandler : ICommandHandler
     {
         public string Command => "GET_USERS";
 
         public void Handle(string[] parts, NetworkStream stream, ServerContext context)
         {
-            var list = context.Users.Select(u => new { u.login, u.personality }).ToList();
-            string json = JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true });
-            TcpServer.SendMessage(stream, json + "__THE_END__");
+            try
+            {
+                var users = context.Users.Select(u => new { u.login, u.personality }).ToList();
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Список пользователей получен", users));
+            }
+            catch (Exception ex)
+            {
+                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при получении списка пользователей", new { error = ex.Message }));
+            }
         }
     }
 }
