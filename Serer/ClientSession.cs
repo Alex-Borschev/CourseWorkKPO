@@ -1,29 +1,25 @@
 ﻿using System;
-using System.Net.Sockets;
-using SharedLibrary;
 
 namespace Server
 {
-    /// <summary>
-    /// Представляет активное подключение клиента.
-    /// Хранит его TCP-поток, состояние и авторизованного пользователя.
-    /// </summary>
     public class ClientSession
     {
-        public Users CurrentUser;
         public string ClientAddress;
         public DateTime ConnectedAt;
 
-        public ClientSession(string address)
+        // ПОЛЕ: текущий логин авторизованного пользователя
+        public string Username;
+
+        public bool IsAuthenticated
         {
-            this.ClientAddress = address;
-            this.ConnectedAt = DateTime.Now;
-            this.CurrentUser = null;
+            get { return Username != null; }
         }
 
-        public bool IsAuthenticated()
+        public ClientSession(string address)
         {
-            return CurrentUser != null;
+            ClientAddress = address;
+            ConnectedAt = DateTime.Now;
+            Username = null;
         }
     }
 }

@@ -1,37 +1,53 @@
 ﻿// Handlers/AdminHandlers.cs
-// Команды:
-// - SUGG_EDIT (предложение правки)
-// - GET_USERS (список пользователей)
-//
-// Изменения:
-// 1. Код отправки сообщений администраторам использует SendMessageHandler.AddMessage для переиспользования логики.
-// 2. Формат JSON-выдачи списка пользователей идентичен оригиналу.
-
-using SharedLibrary;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Text.Json;
+using SharedLibrary;
 
 namespace Server.Handlers
 {
+    // Предложение правки: доставляется всем администраторам как сообщение
     public class SuggestEditHandler : ICommandHandler
     {
-        public string Command => "SUGGEST_EDIT";
+        public string Command => "SUGG_EDIT"; // используем единообразно с клиентом
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
+        public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
-                string termName = parts[1];
-                string suggestion = parts[2];
+                if (!payload.TryGetProperty("termName", out var termNameElement) ||
+                    !payload.TryGetProperty("suggestion", out var suggestionElement))
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Недостаточно данных для предложения правки"));
+                    return;
+                }
 
-                string suggestionFile = "suggestions.txt";
-                File.AppendAllText(suggestionFile, $"{termName}:{suggestion}{Environment.NewLine}");
+                string termName = termNameElement.GetString();
+                string suggestion = suggestionElement.GetString();
 
-                TcpServer.SendResponse(stream, ServerResponse.Ok("Предложение на редактирование отправлено",
-                    new { term = termName, suggestion }));
+                string theme = "Предложение правки: " + termName;
+                string content = suggestion;
+                string author = session.IsAuthenticated ? session.Username : "anonymous";
+
+                var admins = context.Db.GetAllUsers().Where(u => u.Personality == "Администратор").ToList();
+                foreach (var admin in admins)
+                {
+                    if (admin.Messages == null)
+                        admin.Messages = new System.Collections.Generic.List<MessageEntry>();
+
+                    admin.Messages.Add(new MessageEntry
+                    {
+                        Timestamp = DateTime.Now,
+                        Theme = theme,
+                        Content = content,
+                        Author = author
+                    });
+
+                    context.Db.UpdateUser(admin);
+                }
+
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Предложение на редактирование отправлено", new { term = termName }));
             }
             catch (Exception ex)
             {
@@ -40,15 +56,19 @@ namespace Server.Handlers
         }
     }
 
+    // Выдать список пользователей из userdata (Username + Personality)
     public class GetUsersHandler : ICommandHandler
     {
         public string Command => "GET_USERS";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
+        public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
-                var users = context.Users.Select(u => new { u.login, u.personality }).ToList();
+                var users = context.Db.GetAllUsers()
+                    .Select(u => new { login = u.Username, role = u.Personality })
+                    .ToList();
+
                 TcpServer.SendResponse(stream, ServerResponse.Ok("Список пользователей получен", users));
             }
             catch (Exception ex)

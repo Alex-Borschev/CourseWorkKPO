@@ -1,4 +1,10 @@
-﻿using MongoDB.Driver;
+﻿// TermRepository.cs
+// CRUD для терминов в коллекции "terms".
+// Изменения:
+// - Поддержка Id (BsonId в модели Term).
+// - Реализованы базовые методы: GetAll, GetByName, GetById, Add, DeleteByName, Replace.
+
+using MongoDB.Driver;
 using SharedLibrary;
 using System.Collections.Generic;
 
@@ -23,6 +29,11 @@ namespace Server.Database
             return _collection.Find(t => t.term == name).FirstOrDefault();
         }
 
+        public Term GetById(string id)
+        {
+            return _collection.Find(t => t.Id == id).FirstOrDefault();
+        }
+
         public void Add(Term term)
         {
             _collection.InsertOne(term);
@@ -35,7 +46,7 @@ namespace Server.Database
 
         public void Replace(Term term)
         {
-            var filter = Builders<Term>.Filter.Eq(t => t.term, term.term);
+            var filter = Builders<Term>.Filter.Eq(t => t.Id, term.Id);
             _collection.ReplaceOne(filter, term);
         }
     }

@@ -6,6 +6,7 @@
 //   и контекст (общие данные / зависимости).
 
 using System.Net.Sockets;
+using System.Text.Json;
 
 namespace Server
 {
@@ -14,7 +15,6 @@ namespace Server
         /// <summary>
         /// Команда, которую обрабатывает этот handler, например "AUTH".
         /// </summary>
-        string Command { get; }
 
         /// <summary>
         /// Обработать команду.
@@ -23,7 +23,15 @@ namespace Server
         /// <param name="stream">NetworkStream, можно писать ответ</param>
         /// <param name="context">Серверный контекст (пользователи, пути и т.д.)</param>
 
-        void Handle(string[] args, NetworkStream stream, ServerContext context, ClientSession session);
+       // ICommandHandler.cs
+
+
+        string Command { get; }
+        void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session);
+
 
     }
+
+
+
 }

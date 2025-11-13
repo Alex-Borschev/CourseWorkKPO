@@ -1,16 +1,6 @@
-﻿// Handlers/AuthHandler.cs
-// Обработчик команды AUTH
-// Назначение: проверка логина и пароля пользователя.
-//
-// Изменения по сравнению с исходным кодом:
-// 1. Вынесена из switch-case в отдельный класс (паттерн Command).
-// 2. Логика проверки вынесена в отдельные приватные методы для читаемости.
-// 3. Используется JsonHelper и TcpServer.SendMessage — без дублирования.
-
+﻿using System.Net.Sockets;
 using SharedLibrary;
-using System;
-using System.Linq;
-using System.Net.Sockets;
+using System.Text.Json;
 
 namespace Server.Handlers
 {
@@ -18,40 +8,38 @@ namespace Server.Handlers
     {
         public string Command => "AUTH";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
+        public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
         {
-            var data = ParseUserData(parts);
-            if (data == null)
+            if (!payload.TryGetProperty("login", out var loginProp) ||
+                !payload.TryGetProperty("password", out var passwordProp))
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("Некорректные данные авторизации"));
+                TcpServer.SendResponse(stream, ServerResponse.Error("Отсутствуют обязательные поля"));
                 return;
             }
 
-            var login = data.Value.Login;
-            var password = data.Value.Password;
+            string login = loginProp.GetString();
+            string password = passwordProp.GetString();
 
-            var user = context.Db.FindUser(login, password);
-
-            if (user != null)
-                TcpServer.SendResponse(stream, ServerResponse.Ok("Авторизация успешна", new { login, role = user.personality }));
-            else
-                TcpServer.SendResponse(stream, ServerResponse.Error("Неверные учетные данные"));
-        }
-
-
-
-        private (string Login, string Password)? ParseUserData(string[] parts)
-        {
-            try
+            var user = context.Db.ValidateUser(login, password);
+            if (user == null)
             {
-                string login = parts[1].Split('=')[1];
-                string password = parts[2].Split('=')[1];
-                return (login, password);
+                TcpServer.SendResponse(stream, ServerResponse.Error("Неверные данные"));
+                return;
             }
-            catch
-            {
-                return null;
-            }
+
+            session.Username = user.Username;
+
+            TcpServer.SendResponse(
+                stream,
+                ServerResponse.Ok("Авторизация успешна", new
+                {
+                    login = user.Username,
+                    role = user.Personality
+                })
+            );
         }
     }
 }
+
+
+

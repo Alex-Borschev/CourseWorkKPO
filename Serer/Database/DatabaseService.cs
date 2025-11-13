@@ -1,54 +1,39 @@
-﻿using MongoDB.Driver;
+﻿// DatabaseService.cs
+// Фасад для доступа к БД. Инкапсулирует контекст и репозитории.
+// Изменения:
+// - Интегрирует TermRepository и UserDataRepository.
+// - Предоставляет методы, которые удобны для обработчиков.
+
 using SharedLibrary;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Server.Database
 {
     public class DatabaseService
     {
-        private readonly IMongoDatabase _database;
+        public MongoContext Context { get; }
+        public TermRepository Terms { get; }
+        public UserDataRepository Users { get; }
 
-        public DatabaseService(string connectionString, string dbName)
+        public DatabaseService(string connectionString = "mongodb://localhost:27017", string dbName = "EthernetDictionaryDB")
         {
-            var client = new MongoClient(connectionString);
-            _database = client.GetDatabase(dbName);
+            Context = new MongoContext(connectionString, dbName);
+            Terms = new TermRepository(Context);
+            Users = new UserDataRepository(Context);
         }
 
-        public IMongoCollection<Users> Users => _database.GetCollection<Users>("users");
-        public IMongoCollection<Term> Terms => _database.GetCollection<Term>("terms");
+        // --- Convenience wrappers (можно вызывать из обработчиков) ---
+        public List<Term> GetAllTerms() => Terms.GetAll();
+        public Term GetTermByName(string name) => Terms.GetByName(name);
+        public void AddTerm(Term term) => Terms.Add(term);
+        public void DeleteTermByName(string name) => Terms.DeleteByName(name);
+        public void UpdateTerm(Term term) => Terms.Replace(term);
 
-        public List<Users> GetAllUsers()
-        {
-            return Users.Find(_ => true).ToList();
-        }
-
-        public void AddUser(Users user)
-        {
-            Users.InsertOne(user);
-        }
-
-        public Users FindUser(string login, string password)
-        {
-            return Users.Find(u => u.login == login && u.password == password).FirstOrDefault();
-        }
-
-        public List<Term> GetAllTerms()
-        {
-            return Terms.Find(_ => true).ToList();
-        }
-
-        public Term GetTermByName(string name)
-    => Terms.Find(t => t.term == name).FirstOrDefault();
-
-        public void AddTerm(Term term)
-            => Terms.InsertOne(term);
-
-        public void UpdateTerm(Term term)
-        {
-            var filter = Builders<Term>.Filter.Eq(t => t.term, term.term);
-            Terms.ReplaceOne(filter, term);
-        }
-
+        public List<UserData> GetAllUsers() => Users.GetAll();
+        public UserData FindUserByLogin(string login) => Users.FindByLogin(login);
+        public UserData ValidateUser(string login, string password) => Users.ValidateCredentials(login, password);
+        public void AddUser(UserData u) => Users.Add(u);
+        public void UpdateUser(UserData u) => Users.Update(u);
+        public void DeleteUser(string login) => Users.DeleteByLogin(login);
     }
 }

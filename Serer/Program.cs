@@ -1,9 +1,4 @@
 ﻿// Program.cs
-// Точка входа приложения — минимальна: только старт сервера.
-// Изменения:
-// 1) Убрал всю логику из старого Program.cs — теперь логика сервера в TcpServer.
-// 2) Это улучшает читабельность и тестируемость (SRP).
-
 using Server;
 using Server.Database;
 using System;
@@ -17,10 +12,11 @@ namespace Server
             Console.Title = "Ethernet Terms - TCP Server";
             try
             {
-                TcpServer.Run(); // Всё управление сервером перенесено в TcpServer.
+                // Инициализируем DB и передаём его в TcpServer.Run (вариант с DI-lite).
                 var db = new DatabaseService("mongodb://localhost:27017", "EthernetDictionary");
-                var context = new ServerContext(db);
 
+                // Запускаем сервер, передав db (я покажу ниже перегрузку Run)
+                TcpServer.Run(db);
             }
             catch (Exception ex)
             {

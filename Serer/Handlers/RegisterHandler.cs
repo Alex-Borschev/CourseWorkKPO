@@ -1,77 +1,81 @@
-﻿// Handlers/RegisterHandler.cs
-// Обработчик команды REGISTER
-// Назначение: регистрация нового пользователя.
-//
-// Изменения по сравнению с исходным кодом:
-// 1. Вынесена из switch-case.
-// 2. Логика создания JSON-файла пользователя вынесена в отдельный метод CreateUserFile.
-// 3. Добавлены проверки и логгирование.
-// 4. Код стал короче и полностью изолирован (SRP).
-
-using SharedLibrary;
+﻿using SharedLibrary;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net.Sockets;
+using System.Text.Json;
 
 namespace Server.Handlers
 {
     public class RegisterHandler : ICommandHandler
     {
-        public string Command => "REGISTER";
+        public string Command { get { return "REGISTER"; } }
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
+        private const string ADMIN_KEY = "SECRET_KEY_2025";
+
+        public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
         {
-            var data = ParseUserData(parts);
-            if (data == null)
+            JsonElement loginProp;
+            JsonElement passProp;
+
+            if (!payload.TryGetProperty("login", out loginProp) ||
+                !payload.TryGetProperty("password", out passProp))
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("Некорректные данные регистрации"));
+                TcpServer.SendResponse(stream, ServerResponse.Error("Неверный формат"));
                 return;
             }
 
-            var (role, login, password) = data.Value;
+            string login = loginProp.GetString();
+            string password = passProp.GetString();
 
-            if (context.Users.Any(u => u.login == login))
+            // определяем роль
+            string role = "User";
+
+            JsonElement keyProp;
+            if (payload.TryGetProperty("adminKey", out keyProp))
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("Пользователь уже существует"));
+                string key = keyProp.GetString();
+                if (key == ADMIN_KEY)
+                {
+                    role = "Admin";
+                }
+                else
+                {
+                    TcpServer.SendResponse(stream,
+                        ServerResponse.Error("Неверный adminKey"));
+                    return;
+                }
+            }
+
+            // проверка существования
+            if (context.Db.FindUserByLogin(login) != null)
+            {
+                TcpServer.SendResponse(stream,
+                    ServerResponse.Error("Пользователь уже существует"));
                 return;
             }
 
-            var newUser = new Users { personality = role, login = login, password = password };
-            context.Users.Add(newUser);
-            Users.AppendUserToFile("users.txt", newUser);
-            CreateUserFile(login, role);
-
-            TcpServer.SendResponse(stream, ServerResponse.Ok("Регистрация прошла успешно", new { login, role }));
-        }
-
-        private (string Role, string Login, string Password)? ParseUserData(string[] parts)
-        {
-            try
+            // создание пользователя
+            var newUser = new UserData
             {
-                string role = parts[1].Split('=')[1];
-                string login = parts[2].Split('=')[1];
-                string password = parts[3].Split('=')[1];
-                return (role, login, password);
-            }
-            catch { return null; }
-        }
-
-        private void CreateUserFile(string username, string role)
-        {
-            string path = $"{username}.json";
-            var data = new UserData
-            {
-                Username = username,
+                Username = login,
                 Personality = role,
+                Password = password,
                 RegistrationDate = DateTime.Now,
                 Favorites = new List<string>(),
                 RatedTerms = new List<RatedTerm>(),
                 Notes = new List<UserNotes>(),
                 Messages = new List<MessageEntry>()
             };
-            JsonHelper.WriteJsonFile(path, data);
+
+            context.Db.AddUser(newUser);
+
+            TcpServer.SendResponse(stream,
+                ServerResponse.Ok("Регистрация успешна",
+                new
+                {
+                    login = newUser.Username,
+                    role = newUser.Personality
+                }));
         }
     }
 }

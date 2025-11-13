@@ -12,124 +12,107 @@ namespace Server.Handlers
     /// Обработчик добавления нового термина в базу.
     /// Команда клиента: ADD_TERM;{jsonTerm}
     /// </summary>
+
     public class AddTermHandler : ICommandHandler
     {
         public string Command => "ADD_TERM";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
+        public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
-                if (parts.Length < 2)
+                if (!payload.TryGetProperty("termData", out var termJson))
                 {
-                    TcpServer.SendResponse(stream, ServerResponse.Error("Некорректные данные для добавления термина"));
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Отсутствует поле termData"));
                     return;
                 }
 
-                // Объединяем всё после первой части команды в JSON-строку
-                string json = string.Join(";", parts.Skip(1));
-
-                // Десериализация нового термина
-                Term newTerm = JsonSerializer.Deserialize<Term>(json);
-                if (newTerm == null || string.IsNullOrWhiteSpace(newTerm.term))
+                var newTerm = JsonSerializer.Deserialize<Term>(termJson.GetRawText());
+                if (newTerm == null)
                 {
-                    TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка чтения данных термина"));
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка десериализации термина"));
                     return;
                 }
 
-                // Загружаем существующую базу
-                /*TermList termList = JsonHelper.ReadJsonFile<TermList>(context.TermsFilePath)
-                    ?? new TermList { terms = new List<Term>() };*/
-                TermList termList = new TermList { terms = context.Db.GetAllTerms() ?? new List<Term>() };
-
-
-                // Проверяем наличие дубликатов
-                if (termList.terms.Any(t => t.term.Equals(newTerm.term, StringComparison.OrdinalIgnoreCase)))
+                if (context.Db.GetTermByName(newTerm.term) != null)
                 {
-                    TcpServer.SendResponse(stream, ServerResponse.Error("Термин уже существует"));
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Такой термин уже существует"));
                     return;
                 }
 
-                // Добавляем новый термин
                 newTerm.addedDate = DateTime.Now;
                 newTerm.lastAccessed = DateTime.MinValue;
-                termList.terms.Add(newTerm);
 
-                // Сохраняем обновлённый список
-                foreach (var term in termList.terms)
-                {
-                    var existing = context.Db.GetTermByName(term.term);
-                    if (existing == null)
-                        context.Db.AddTerm(term);
-                    else
-                        context.Db.UpdateTerm(term);
-                }
+                context.Db.AddTerm(newTerm);
 
-
-                // Отправляем подтверждение
-                TcpServer.SendResponse(stream, ServerResponse.Ok("Термин добавлен успешно", new { term = newTerm.term }));
-
-                Console.WriteLine($"[ADD_TERM] {newTerm.term}");
+                TcpServer.SendResponse(stream,
+                    ServerResponse.Ok("Термин добавлен", new { term = newTerm.term }));
             }
             catch (Exception ex)
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при добавлении термина", new { error = ex.Message }));
+                TcpServer.SendResponse(stream,
+                    ServerResponse.Error("Ошибка при добавлении термина", new { error = ex.Message }));
             }
         }
     }
+
+
+
     public class DeleteTermHandler : ICommandHandler
     {
         public string Command => "DELETE_TERM";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
+        public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
-                string termName = parts[1];
-                TermList termList = new TermList { terms = context.Db.GetAllTerms() ?? new List<Term>() };
+                if (!payload.TryGetProperty("term", out var termProp))
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Отсутствует поле term"));
+                    return;
+                }
 
-                var term = termList?.terms?.FirstOrDefault(t =>
-                    t.term.Equals(termName, StringComparison.OrdinalIgnoreCase));
+                string termName = termProp.GetString();
 
+                var term = context.Db.GetTermByName(termName);
                 if (term == null)
                 {
                     TcpServer.SendResponse(stream, ServerResponse.Error("Термин не найден"));
                     return;
                 }
 
-                termList.terms.Remove(term);
-                foreach (var t in termList.terms)
-                {
-                    var existing = context.Db.GetTermByName(t.term);
-                    if (existing == null)
-                        context.Db.AddTerm(t);
-                    else
-                        context.Db.UpdateTerm(t);
-                }
+                context.Db.DeleteTermByName(termName);
 
-                TcpServer.SendResponse(stream, ServerResponse.Ok("Термин успешно удалён", new { term = termName }));
+                TcpServer.SendResponse(stream,
+                    ServerResponse.Ok("Термин успешно удалён", new { term = termName }));
             }
             catch (Exception ex)
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при удалении термина", new { error = ex.Message }));
+                TcpServer.SendResponse(stream,
+                    ServerResponse.Error("Ошибка при удалении термина", new { error = ex.Message }));
             }
         }
     }
+
+
 
     public class TermVisitedHandler : ICommandHandler
     {
         public string Command => "TERM_VISITED";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
+        public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
-                string termName = parts[1];
-                TermList termList = new TermList { terms = context.Db.GetAllTerms() ?? new List<Term>() };
+                if (!payload.TryGetProperty("term", out var termProp))
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Отсутствует поле term"));
+                    return;
+                }
 
-                var term = termList?.terms?.FirstOrDefault(t =>
-                    t.term.Equals(termName, StringComparison.OrdinalIgnoreCase));
+                string termName = termProp.GetString();
 
+                var term = context.Db.GetTermByName(termName);
                 if (term == null)
                 {
                     TcpServer.SendResponse(stream, ServerResponse.Error("Термин не найден"));
@@ -137,25 +120,19 @@ namespace Server.Handlers
                 }
 
                 term.lastAccessed = DateTime.Now;
-                foreach (var t in termList.terms)
-                {
-                    var existing = context.Db.GetTermByName(t.term);
-                    if (existing == null)
-                        context.Db.AddTerm(t);
-                    else
-                        context.Db.UpdateTerm(t);
-                }
+                context.Db.UpdateTerm(term);
 
-
-
-
-                TcpServer.SendResponse(stream, ServerResponse.Ok("Обновлено время последнего доступа",
-                    new { term = termName, term.lastAccessed }));
+                TcpServer.SendResponse(stream,
+                    ServerResponse.Ok("Время последнего доступа обновлено",
+                        new { term = termName, lastAccessed = term.lastAccessed }));
             }
             catch (Exception ex)
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при обновлении даты доступа", new { error = ex.Message }));
+                TcpServer.SendResponse(stream,
+                    ServerResponse.Error("Ошибка при обновлении доступа", new { error = ex.Message }));
             }
         }
     }
 }
+
+
