@@ -17,15 +17,17 @@ namespace Server.Handlers
     {
         public string Command => "GET_TERMS";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
-            if (!File.Exists(context.TermsFilePath))
+            var terms = context.Db.GetAllTerms();
+
+            if (terms == null || terms.Count == 0)
             {
-                TcpServer.SendResponse(stream, ServerResponse.Error("Файл базы терминов не найден"));
+                TcpServer.SendResponse(stream, ServerResponse.Error("База терминов пуста или не найдена"));
                 return;
             }
 
-            var terms = JsonHelper.ReadJsonFile<TermList>(context.TermsFilePath);
+            // Отправляем список терминов клиенту
             TcpServer.SendResponse(stream, ServerResponse.Ok("Список терминов получен", terms));
         }
     }

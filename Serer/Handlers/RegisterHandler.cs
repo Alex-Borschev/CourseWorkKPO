@@ -21,7 +21,7 @@ namespace Server.Handlers
     {
         public string Command => "REGISTER";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             var data = ParseUserData(parts);
             if (data == null)

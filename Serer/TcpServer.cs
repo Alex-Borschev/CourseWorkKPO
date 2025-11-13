@@ -18,15 +18,33 @@ using System.Text;
 using System.Threading;
 using System.Collections.Generic;
 using System.IO;
+using Server.Database;
 
 namespace Server
 {
     public class ServerContext
     {
-        public List<Users> Users { get; set; }
-        public string TermsFilePath { get; set; }
+        public DatabaseService Db { get; }
+        public List<SharedLibrary.Users> Users { get; set; }
+
+        // Репозитории для работы с MongoDB
+        public UserRepository UsersRepo { get; set; }
+        public TermRepository TermsRepo { get; set; }
+
+        // Роутер для команд
         public CommandRouter Router { get; set; }
+
+        public ServerContext(DatabaseService db)
+        {
+            Db = db;
+            Users = db.GetAllUsers();
+        }
+
+        // Пустой конструктор для MongoDB
+        public ServerContext() { }
     }
+
+
 
     public static class TcpServer
     {
@@ -37,25 +55,18 @@ namespace Server
 
         public static void Run()
         {
-            List<Users> users;
-            try
-            {
-                users = Users.LoadUsersFromFile(USERS_FILE);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Ошибка при загрузке пользователей: " + ex.Message);
-                return;
-            }
+            // Создаём контекст MongoDB
+            var mongo = new Server.Database.MongoContext("mongodb://localhost:27017", "EthernetDictionaryDB");
+            var usersRepo = new Server.Database.UserRepository(mongo);
+            var termsRepo = new Server.Database.TermRepository(mongo);
 
             var context = new ServerContext
             {
-                Users = users,
-                TermsFilePath = TERMS_JSON,
+                UsersRepo = usersRepo,
+                TermsRepo = termsRepo,
                 Router = new CommandRouter()
             };
 
-            // Регистрация всех обработчиков
             RegisterAllHandlers(context);
 
             TcpListener listener = new TcpListener(IPAddress.Any, PORT);
@@ -91,13 +102,15 @@ namespace Server
             context.Router.RegisterHandler(new Server.Handlers.RateTermHandler());
         }
 
-        private static void HandleClient(TcpClient client, int clientId, ServerContext context)
+        private static void HandleClient(TcpClient client, int clientId, ServerContext globalContext)
         {
             string clientAddress = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
             int threadId = Thread.CurrentThread.ManagedThreadId;
             string connectionTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
             FileLogger.LogConnection(clientAddress, connectionTime, threadId);
+
+            var session = new ClientSession(clientAddress);
 
             try
             {
@@ -114,7 +127,8 @@ namespace Server
                         string[] parts = received.Split(new[] { ';' }, StringSplitOptions.None);
                         string command = parts.Length > 0 ? parts[0] : string.Empty;
 
-                        context.Router.Route(command, parts, stream, context);
+                        // Теперь передаем сессию в Router
+                        globalContext.Router.Route(command, parts, stream, globalContext, session);
                     }
                 }
             }
@@ -128,6 +142,7 @@ namespace Server
                 Console.WriteLine($"Клиент {clientAddress} поток {threadId} отключился.");
             }
         }
+
 
         public static void SendResponse(NetworkStream stream, ServerResponse response)
         {

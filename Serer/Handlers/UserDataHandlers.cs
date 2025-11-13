@@ -11,7 +11,7 @@ namespace Server.Handlers
     {
         public string Command => "UPDATE_FAVORITE";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
@@ -53,7 +53,7 @@ namespace Server.Handlers
     {
         public string Command => "ADD_NOTE";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
@@ -89,7 +89,7 @@ namespace Server.Handlers
     {
         public string Command => "CLEAR_MESSAGE";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
@@ -118,7 +118,7 @@ namespace Server.Handlers
     {
         public string Command => "SEND_MESSAGE";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
@@ -158,7 +158,7 @@ namespace Server.Handlers
     {
         public string Command => "GET_USER_DATA";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {

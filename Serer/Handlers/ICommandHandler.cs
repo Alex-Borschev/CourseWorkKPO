@@ -22,6 +22,8 @@ namespace Server
         /// <param name="parts">Массив частей сообщения (разделитель ';')</param>
         /// <param name="stream">NetworkStream, можно писать ответ</param>
         /// <param name="context">Серверный контекст (пользователи, пути и т.д.)</param>
-        void Handle(string[] parts, NetworkStream stream, ServerContext context);
+
+        void Handle(string[] args, NetworkStream stream, ServerContext context, ClientSession session);
+
     }
 }

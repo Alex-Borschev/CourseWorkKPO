@@ -19,7 +19,7 @@ namespace Server.Handlers
     {
         public string Command => "RATE_TERM";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {

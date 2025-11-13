@@ -20,7 +20,7 @@ namespace Server.Handlers
     {
         public string Command => "SUGGEST_EDIT";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
@@ -44,7 +44,7 @@ namespace Server.Handlers
     {
         public string Command => "GET_USERS";
 
-        public void Handle(string[] parts, NetworkStream stream, ServerContext context)
+        public void Handle(string[] parts, NetworkStream stream, ServerContext context, ClientSession session)
         {
             try
             {
