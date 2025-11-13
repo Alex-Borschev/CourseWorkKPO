@@ -34,7 +34,7 @@ namespace Server
         {
             if (string.IsNullOrWhiteSpace(command))
             {
-                TcpServer.SendMessage(stream, "InvalidCommand");
+                TcpServer.SendResponse(stream, ServerResponse.Error("Invalid command"));
                 return;
             }
 
@@ -49,13 +49,13 @@ namespace Server
                 {
                     // Единая обработка ошибок для обработчиков
                     var msg = "ERROR:" + ex.Message;
-                    TcpServer.SendMessage(stream, msg);
+                    TcpServer.SendResponse(stream, ServerResponse.Error(msg));
                     Console.WriteLine("Handler error for command " + command + ": " + ex.Message);
                 }
             }
             else
             {
-                TcpServer.SendMessage(stream, "UnknownCommand");
+                TcpServer.SendResponse(stream, ServerResponse.Error("UnknownCommand"));
             }
         }
     }

@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
-using System.Text.Json;
 
 namespace Server.Handlers
 {
@@ -27,8 +26,7 @@ namespace Server.Handlers
             var data = ParseUserData(parts);
             if (data == null)
             {
-                TcpServer.SendMessage(stream, "InvalidData");
-                Console.WriteLine("[REGISTER] -> InvalidData");
+                TcpServer.SendResponse(stream, ServerResponse.Error("Некорректные данные регистрации"));
                 return;
             }
 
@@ -36,23 +34,16 @@ namespace Server.Handlers
 
             if (context.Users.Any(u => u.login == login))
             {
-                TcpServer.SendMessage(stream, "UserExists");
-                Console.WriteLine($"[REGISTER] User '{login}' already exists.");
+                TcpServer.SendResponse(stream, ServerResponse.Error("Пользователь уже существует"));
                 return;
             }
 
-            Users newUser = new Users
-            {
-                personality = role,
-                login = login,
-                password = password
-            };
-
+            var newUser = new Users { personality = role, login = login, password = password };
             context.Users.Add(newUser);
             Users.AppendUserToFile("users.txt", newUser);
             CreateUserFile(login, role);
-            TcpServer.SendMessage(stream, "RegisterSuccess");
-            Console.WriteLine($"[REGISTER] User '{login}' registered successfully.");
+
+            TcpServer.SendResponse(stream, ServerResponse.Ok("Регистрация прошла успешно", new { login, role }));
         }
 
         private (string Role, string Login, string Password)? ParseUserData(string[] parts)
@@ -64,20 +55,13 @@ namespace Server.Handlers
                 string password = parts[3].Split('=')[1];
                 return (role, login, password);
             }
-            catch
-            {
-                return null;
-            }
+            catch { return null; }
         }
 
-        /// <summary>
-        /// Создание JSON-файла с данными нового пользователя.
-        /// </summary>
         private void CreateUserFile(string username, string role)
         {
-            string filePath = $"{username}.json";
-
-            var newUserData = new UserData
+            string path = $"{username}.json";
+            var data = new UserData
             {
                 Username = username,
                 Personality = role,
@@ -87,8 +71,7 @@ namespace Server.Handlers
                 Notes = new List<UserNotes>(),
                 Messages = new List<MessageEntry>()
             };
-
-            JsonHelper.WriteJsonFile(filePath, newUserData);
+            JsonHelper.WriteJsonFile(path, data);
         }
     }
 }

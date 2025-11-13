@@ -7,7 +7,7 @@
 // 2. Использует JsonHelper и TcpServer.SendMessage.
 // 3. Отправка завершается "__THE_END__" для совместимости с клиентом.
 
-using System;
+using SharedLibrary;
 using System.IO;
 using System.Net.Sockets;
 
@@ -21,19 +21,12 @@ namespace Server.Handlers
         {
             if (!File.Exists(context.TermsFilePath))
             {
-                TcpServer.SendMessage(stream, "ERROR: File not found");
+                TcpServer.SendResponse(stream, ServerResponse.Error("Файл базы терминов не найден"));
                 return;
             }
 
-            try
-            {
-                string json = File.ReadAllText(context.TermsFilePath);
-                TcpServer.SendMessage(stream, json + "__THE_END__");
-            }
-            catch (Exception ex)
-            {
-                TcpServer.SendMessage(stream, "ERROR: " + ex.Message);
-            }
+            var terms = JsonHelper.ReadJsonFile<TermList>(context.TermsFilePath);
+            TcpServer.SendResponse(stream, ServerResponse.Ok("Список терминов получен", terms));
         }
     }
 }

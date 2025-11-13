@@ -88,6 +88,7 @@
     <Compile Include="Utils\CommandRouter.cs" />
     <Compile Include="Utils\FileLogger.cs" />
     <Compile Include="Utils\JsonHelper.cs" />
+    <Compile Include="Utils\ServerResponse.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -1,180 +1,183 @@
-﻿// Handlers/UserDataHandlers.cs
-// Группа обработчиков, работающих с файлами пользователей:
-// - UPDATE_FAVORITE
-// - ADD_NOTE
-// - CLEAR_MESSAGE
-// - SEND_MESSAGE
-// - GET_USER_DATA
-//
-// Изменения:
-// 1. Код разделён на отдельные классы внутри файла для логической близости.
-// 2. Все операции с JSON теперь безопасно выполняются через JsonHelper.
-// 3. Повторяющийся код чтения UserData объединён.
-
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
-using System.Collections.Generic;
-using System.Text.Json;
 using SharedLibrary;
 
 namespace Server.Handlers
 {
-    // Базовый вспомогательный класс для доступа к данным пользователя
-    internal static class UserDataHelper
-    {
-        public static UserData Load(string username)
-        {
-            string path = $"{username}.json";
-            return JsonHelper.ReadJsonFile<UserData>(path);
-        }
-
-        public static void Save(string username, UserData data)
-        {
-            string path = $"{username}.json";
-            JsonHelper.WriteJsonFile(path, data);
-        }
-    }
-
-    // --- UPDATE_FAVORITE ---
     public class UpdateFavoriteHandler : ICommandHandler
     {
         public string Command => "UPDATE_FAVORITE";
 
         public void Handle(string[] parts, NetworkStream stream, ServerContext context)
         {
-            if (parts.Length < 4) return;
-            string username = parts[1];
-            string term = parts[2];
-            bool isAdding = Convert.ToBoolean(parts[3]);
-
-            var data = UserDataHelper.Load(username);
-            if (data == null) return;
-
-            if (isAdding)
+            try
             {
-                if (!data.Favorites.Contains(term))
-                    data.Favorites.Add(term);
-            }
-            else data.Favorites.Remove(term);
+                string username = parts[1];
+                string term = parts[2];
+                bool isFavorite = bool.Parse(parts[3]);
 
-            UserDataHelper.Save(username, data);
-            Console.WriteLine($"[UPDATE_FAVORITE] {username} -> {term}");
+                string path = $"{username}.json";
+                var data = JsonHelper.ReadJsonFile<UserData>(path) ?? new UserData
+                {
+                    Username = username,
+                    Favorites = new List<string>(),
+                    RatedTerms = new List<RatedTerm>(),
+                    Notes = new List<UserNotes>(),
+                    Messages = new List<MessageEntry>()
+                };
+
+                if (isFavorite)
+                {
+                    if (!data.Favorites.Contains(term))
+                        data.Favorites.Add(term);
+                }
+                else
+                {
+                    data.Favorites.Remove(term);
+                }
+
+                JsonHelper.WriteJsonFile(path, data);
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Избранное обновлено", new { term, isFavorite }));
+            }
+            catch (Exception ex)
+            {
+                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при обновлении избранного", new { error = ex.Message }));
+            }
         }
     }
 
-    // --- ADD_NOTE ---
     public class AddNoteHandler : ICommandHandler
     {
         public string Command => "ADD_NOTE";
 
         public void Handle(string[] parts, NetworkStream stream, ServerContext context)
         {
-            if (parts.Length < 4) return;
+            try
+            {
+                string username = parts[1];
+                string notedTerm = parts[2];
+                string notedData = parts[3];
 
-            string username = parts[1];
-            string term = parts[2];
-            string content = parts[3];
-            bool isRemoving = parts.Length > 4 && parts[4] == "REMOVE";
-            bool isRemovingAll = parts.Length > 4 && parts[4] == "REMOVE_ALL";
+                string path = $"{username}.json";
+                var data = JsonHelper.ReadJsonFile<UserData>(path) ?? new UserData
+                {
+                    Username = username,
+                    Notes = new List<UserNotes>()
+                };
 
-            var data = UserDataHelper.Load(username);
-            if (data == null) return;
+                data.Notes.Add(new UserNotes
+                {
+                    Timestamp = DateTime.Now,
+                    NotedTerm = notedTerm,
+                    NotedData = notedData
+                });
 
-            if (data.Notes == null)
-                data.Notes = new List<UserNotes>();
-
-            if (isRemovingAll)
-                data.Notes.Clear();
-            else if (isRemoving)
-                data.Notes.RemoveAll(n => n.NotedTerm == term && n.NotedData == content);
-            else
-                data.Notes.Add(new UserNotes { Timestamp = DateTime.Now, NotedTerm = term, NotedData = content });
-
-            UserDataHelper.Save(username, data);
-            TcpServer.SendMessage(stream, "OK");
-            Console.WriteLine($"[ADD_NOTE] {username}");
+                JsonHelper.WriteJsonFile(path, data);
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Заметка добавлена", new { term = notedTerm, note = notedData }));
+            }
+            catch (Exception ex)
+            {
+                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при добавлении заметки", new { error = ex.Message }));
+            }
         }
     }
 
-    // --- CLEAR_MESSAGE ---
     public class ClearMessageHandler : ICommandHandler
     {
         public string Command => "CLEAR_MESSAGE";
 
         public void Handle(string[] parts, NetworkStream stream, ServerContext context)
         {
-            string username = parts[1];
-            string theme = parts[2];
-            string content = parts[3];
-            bool removeAll = parts.Length > 4 && parts[4] == "REMOVE_ALL";
+            try
+            {
+                string username = parts[1];
+                string path = $"{username}.json";
 
-            var data = UserDataHelper.Load(username);
-            if (data == null) return;
+                var data = JsonHelper.ReadJsonFile<UserData>(path);
+                if (data == null)
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Файл пользователя не найден"));
+                    return;
+                }
 
-            if (removeAll) data.Messages.Clear();
-            else data.Messages.RemoveAll(m => m.Theme == theme && m.Content == content);
-
-            UserDataHelper.Save(username, data);
-            TcpServer.SendMessage(stream, "OK");
-            Console.WriteLine($"[CLEAR_MESSAGE] {username}");
+                data.Messages.Clear();
+                JsonHelper.WriteJsonFile(path, data);
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Сообщения очищены"));
+            }
+            catch (Exception ex)
+            {
+                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при очистке сообщений", new { error = ex.Message }));
+            }
         }
     }
 
-    // --- SEND_MESSAGE ---
     public class SendMessageHandler : ICommandHandler
     {
         public string Command => "SEND_MESSAGE";
 
         public void Handle(string[] parts, NetworkStream stream, ServerContext context)
         {
-            string loginFrom = parts[1];
-            string loginTo = parts[2];
-            string theme = parts[3];
-            string content = parts[4];
-
-            if (loginTo == "ALL_ADMINS")
+            try
             {
-                foreach (var admin in context.Users.Where(u => u.personality == "Администратор"))
-                    AddMessage(admin.login, loginFrom, theme, content);
+                string author = parts[1];
+                string recipient = parts[2];
+                string theme = parts[3];
+                string content = parts[4];
+
+                string recipientPath = $"{recipient}.json";
+                var data = JsonHelper.ReadJsonFile<UserData>(recipientPath) ?? new UserData
+                {
+                    Username = recipient,
+                    Messages = new List<MessageEntry>()
+                };
+
+                data.Messages.Add(new MessageEntry
+                {
+                    Author = author,
+                    Theme = theme,
+                    Content = content,
+                    Timestamp = DateTime.Now
+                });
+
+                JsonHelper.WriteJsonFile(recipientPath, data);
+
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Сообщение отправлено",
+                    new { to = recipient, theme, content }));
             }
-            else AddMessage(loginTo, loginFrom, theme, content);
-
-            TcpServer.SendMessage(stream, "Доставлено");
-            Console.WriteLine($"[SEND_MESSAGE] {loginFrom} -> {loginTo}");
-        }
-
-        private void AddMessage(string toUser, string fromUser, string theme, string content)
-        {
-            var data = UserDataHelper.Load(toUser);
-            if (data == null) return;
-
-            data.Messages.Add(new MessageEntry
+            catch (Exception ex)
             {
-                Timestamp = DateTime.Now,
-                Theme = theme,
-                Content = content,
-                Author = fromUser
-            });
-
-            UserDataHelper.Save(toUser, data);
+                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при отправке сообщения", new { error = ex.Message }));
+            }
         }
     }
 
-    // --- GET_USER_DATA ---
     public class GetUserDataHandler : ICommandHandler
     {
         public string Command => "GET_USER_DATA";
 
         public void Handle(string[] parts, NetworkStream stream, ServerContext context)
         {
-            string username = parts[1];
-            var data = UserDataHelper.Load(username);
-            if (data == null) return;
+            try
+            {
+                string username = parts[1];
+                string path = $"{username}.json";
 
-            string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-            TcpServer.SendMessage(stream, json + "__THE_END__");
+                if (!File.Exists(path))
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Файл пользователя не найден"));
+                    return;
+                }
+
+                var data = JsonHelper.ReadJsonFile<UserData>(path);
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Данные пользователя получены", data));
+            }
+            catch (Exception ex)
+            {
+                TcpServer.SendResponse(stream, ServerResponse.Error("Ошибка при получении данных пользователя", new { error = ex.Message }));
+            }
         }
     }
 }
