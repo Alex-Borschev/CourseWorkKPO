@@ -1,0 +1,19 @@
+Server/
+│
+├── Program.cs                 // Точка входа. Минимум логики, только запуск сервера.
+├── TcpServer.cs               // Основная логика сервера и потоков клиентов.
+│
+├── Handlers/
+│   ├── ICommandHandler.cs     // Интерфейс обработчиков команд
+│   ├── AuthHandler.cs			// Авторизация
+│   ├── RegisterHandler.cs		// Регистрация
+│   ├── GetTermsHandler.cs		// Получение терминов из БД (пока json)
+│   ├── TermHandlers.cs        // (Add/Delete/Visit)
+│   ├── UserDataHandlers.cs    // (Favorites, Notes, Messages)
+│   ├── AdminHandlers.cs      // (SuggestEdit, GetUsers)
+│   └── RateTermHandler.cs
+│П
+├── Utils/
+│   ├── JsonHelper.cs         // Универсальные методы сериализации JSON
+│   ├── FileLogger.cs          // Логирование подключений
+│   └── CommandRouter.cs       // Регистрация и маршрутизация команд
