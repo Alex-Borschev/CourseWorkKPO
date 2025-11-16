@@ -85,11 +85,8 @@ namespace Server.Handlers
                     return;
                 }
 
-                JsonElement termProp;
-                JsonElement dataProp;
-
-                if (!payload.TryGetProperty("term", out termProp) ||
-                    !payload.TryGetProperty("note", out dataProp))
+                if (!payload.TryGetProperty("term", out var termProp) ||
+                    !payload.TryGetProperty("note", out var dataProp))
                 {
                     TcpServer.SendResponse(stream, ServerResponse.Error("Неверный формат"));
                     return;
@@ -102,24 +99,88 @@ namespace Server.Handlers
                     return;
                 }
 
-                if (user.Notes == null)
-                    user.Notes = new System.Collections.Generic.List<UserNotes>();
+                var term = termProp.GetString();
+                var noteData = dataProp.GetString();
 
+                if (user.Notes == null)
+                    user.Notes = new List<UserNotes>();
+
+                // ищем уже существующую запись
+                var existing = user.Notes.FirstOrDefault(n => n.NotedTerm == term);
+                if (existing != null)
+                    user.Notes.Remove(existing);
+
+                // добавляем новую
                 user.Notes.Add(new UserNotes
                 {
                     Timestamp = DateTime.Now,
-                    NotedTerm = termProp.GetString(),
-                    NotedData = dataProp.GetString()
+                    NotedTerm = term,
+                    NotedData = noteData
                 });
 
                 context.Db.UpdateUser(user);
 
-                TcpServer.SendResponse(stream, ServerResponse.Ok("Заметка добавлена"));
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Заметка обновлена"));
             }
             catch (Exception ex)
             {
                 TcpServer.SendResponse(stream,
                     ServerResponse.Error("Ошибка при добавлении заметки", new { error = ex.Message }));
+            }
+        }
+    }
+
+    public class DeleteNoteHandler : ICommandHandler
+    {
+        public string Command => "DELETE_NOTE";
+
+        public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
+        {
+            try
+            {
+                if (!session.IsAuthenticated)
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Пользователь не авторизован"));
+                    return;
+                }
+
+                if (!payload.TryGetProperty("term", out var termProp))
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Неверный формат"));
+                    return;
+                }
+
+                var term = termProp.GetString();
+
+                var user = context.Db.FindUserByLogin(session.Username);
+                if (user == null)
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Пользователь не найден"));
+                    return;
+                }
+
+                if (user.Notes == null || user.Notes.Count == 0)
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Заметок нет"));
+                    return;
+                }
+
+                var existing = user.Notes.FirstOrDefault(n => n.NotedTerm == term);
+                if (existing == null)
+                {
+                    TcpServer.SendResponse(stream, ServerResponse.Error("Такой заметки нет"));
+                    return;
+                }
+
+                user.Notes.Remove(existing);
+                context.Db.UpdateUser(user);
+
+                TcpServer.SendResponse(stream, ServerResponse.Ok("Заметка удалена"));
+            }
+            catch (Exception ex)
+            {
+                TcpServer.SendResponse(stream,
+                    ServerResponse.Error("Ошибка при удалении заметки", new { error = ex.Message }));
             }
         }
     }

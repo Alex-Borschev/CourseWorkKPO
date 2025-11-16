@@ -47,11 +47,13 @@ namespace Server
             context.Router.RegisterHandler(new Server.Handlers.AuthHandler());
             context.Router.RegisterHandler(new Server.Handlers.RegisterHandler());
             context.Router.RegisterHandler(new Server.Handlers.GetTermsHandler());
+            context.Router.RegisterHandler(new Server.Handlers.GetCategoriesHandler());
             context.Router.RegisterHandler(new Server.Handlers.AddTermHandler());
             context.Router.RegisterHandler(new Server.Handlers.DeleteTermHandler());
             context.Router.RegisterHandler(new Server.Handlers.TermVisitedHandler());
             context.Router.RegisterHandler(new Server.Handlers.UpdateFavoriteHandler());
             context.Router.RegisterHandler(new Server.Handlers.AddNoteHandler());
+            context.Router.RegisterHandler(new Server.Handlers.DeleteNoteHandler());
             context.Router.RegisterHandler(new Server.Handlers.ClearMessageHandler());
             context.Router.RegisterHandler(new Server.Handlers.SendMessageHandler());
             context.Router.RegisterHandler(new Server.Handlers.GetUserDataHandler());
@@ -67,6 +69,7 @@ namespace Server
             {
                 TcpClient client = listener.AcceptTcpClient();
                 ThreadPool.QueueUserWorkItem(_ => HandleClient(client, context));
+                Console.WriteLine("A new user has connected");
             }
         }
 
@@ -85,8 +88,9 @@ namespace Server
                     while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) != 0)
                     {
                         string received = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
-
+                        Console.WriteLine(received);
                         var envelope = JsonSerializer.Deserialize<ClientEnvelope>(received);
+                        
                         if (envelope == null || envelope.Command == null)
                         {
                             TcpServer.SendResponse(stream, ServerResponse.Error("Некорректный формат сообщения"));
@@ -127,7 +131,7 @@ namespace Server
             if (stream == null || !stream.CanWrite || response == null) return;
             try
             {
-                string json = response.ToJson();
+                string json = response.ToJson() + '\n';
                 byte[] data = Encoding.UTF8.GetBytes(json);
                 stream.Write(data, 0, data.Length);
             }

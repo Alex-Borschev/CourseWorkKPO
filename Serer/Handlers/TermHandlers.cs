@@ -110,9 +110,9 @@ namespace Server.Handlers
                     return;
                 }
 
-                string termName = termProp.GetString();
+                string termID = termProp.GetString();
 
-                var term = context.Db.GetTermByName(termName);
+                var term = context.Db.GetTermByID(termID);
                 if (term == null)
                 {
                     TcpServer.SendResponse(stream, ServerResponse.Error("Термин не найден"));
@@ -124,7 +124,7 @@ namespace Server.Handlers
 
                 TcpServer.SendResponse(stream,
                     ServerResponse.Ok("Время последнего доступа обновлено",
-                        new { term = termName, lastAccessed = term.lastAccessed }));
+                        new { term = termID, lastAccessed = term.lastAccessed }));
             }
             catch (Exception ex)
             {

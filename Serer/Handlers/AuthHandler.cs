@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 using SharedLibrary;
 using System.Text.Json;
+using System;
 
 namespace Server.Handlers
 {
@@ -14,6 +15,7 @@ namespace Server.Handlers
                 !payload.TryGetProperty("password", out var passwordProp))
             {
                 TcpServer.SendResponse(stream, ServerResponse.Error("Отсутствуют обязательные поля"));
+                Console.WriteLine("Отсутствуют обязательные поля");
                 return;
             }
 
@@ -28,15 +30,19 @@ namespace Server.Handlers
             }
 
             session.Username = user.Username;
-
+            Console.WriteLine(user);
             TcpServer.SendResponse(
                 stream,
                 ServerResponse.Ok("Авторизация успешна", new
                 {
+                    id = user.Id,
                     login = user.Username,
-                    role = user.Personality
+                    role = user.Personality,
+                    a = user.Messages
                 })
+
             );
+            Console.WriteLine("Авторизация успешна");
         }
     }
 }

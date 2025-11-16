@@ -9,6 +9,7 @@
 
 using SharedLibrary;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -17,7 +18,7 @@ namespace Server.Handlers
 {
     public class RateTermHandler : ICommandHandler
     {
-        public string Command { get { return "RATE_TERM"; } }
+        public string Command => "RATE_TERM";
 
         public void Handle(JsonElement payload, NetworkStream stream, ServerContext context, ClientSession session)
         {
@@ -40,7 +41,7 @@ namespace Server.Handlers
                     return;
                 }
 
-                string termName = termProp.GetString();
+                string termId = termProp.GetString();
                 int rating = ratingProp.GetInt32();
 
                 var user = context.Db.FindUserByLogin(username);
@@ -50,7 +51,7 @@ namespace Server.Handlers
                     return;
                 }
 
-                var term = context.Db.GetTermByName(termName);
+                var term = context.Db.GetTermByID(termId);
                 if (term == null)
                 {
                     TcpServer.SendResponse(stream, ServerResponse.Error("Термин не найден"));
@@ -58,18 +59,45 @@ namespace Server.Handlers
                 }
 
                 if (user.RatedTerms == null)
-                    user.RatedTerms = new System.Collections.Generic.List<RatedTerm>();
+                    user.RatedTerms = new List<RatedTerm>();
 
                 if (term.difficultyRatings == null)
-                    term.difficultyRatings = new System.Collections.Generic.List<int>();
+                    term.difficultyRatings = new List<int>();
 
-                // обновляем рейтинг пользователя
-                var existing = user.RatedTerms.FirstOrDefault(r => r.Term == termName);
+                // ищем существующую оценку
+                var existing = user.RatedTerms.FirstOrDefault(r => r.Term == termId);
+
+                if (rating == 0)
+                {
+                    // ⛔ УДАЛЕНИЕ ОЦЕНКИ
+
+                    if (existing != null)
+                    {
+                        // удалить старый рейтинг пользователя
+                        int oldRating = existing.Rating;
+
+                        int idx = term.difficultyRatings.IndexOf(oldRating);
+                        if (idx >= 0)
+                            term.difficultyRatings.RemoveAt(idx);
+
+                        // убрать запись из RatedTerms
+                        user.RatedTerms.Remove(existing);
+                    }
+
+                    context.Db.UpdateTerm(term);
+                    context.Db.UpdateUser(user);
+
+                    TcpServer.SendResponse(stream,
+                        ServerResponse.Ok("Оценка удалена", new { term = termId }));
+
+                    return;
+                }
+
+                // 🔄 ИЗМЕНЕНИЕ / ДОБАВЛЕНИЕ ОЦЕНКИ
                 if (existing != null)
                 {
                     int old = existing.Rating;
 
-                    // удалить одно вхождение старой оценки
                     int idx = term.difficultyRatings.IndexOf(old);
                     if (idx >= 0)
                         term.difficultyRatings.RemoveAt(idx);
@@ -80,19 +108,18 @@ namespace Server.Handlers
                 {
                     user.RatedTerms.Add(new RatedTerm
                     {
-                        Term = termName,
+                        Term = termId,
                         Rating = rating
                     });
                 }
 
-                // записываем новую оценку
                 term.difficultyRatings.Add(rating);
 
                 context.Db.UpdateTerm(term);
                 context.Db.UpdateUser(user);
 
                 TcpServer.SendResponse(stream,
-                    ServerResponse.Ok("Оценка сохранена", new { term = termName, rating = rating }));
+                    ServerResponse.Ok("Оценка сохранена", new { term = termId, rating = rating }));
             }
             catch (Exception ex)
             {

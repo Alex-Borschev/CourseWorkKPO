@@ -25,6 +25,7 @@ namespace Server.Database
         // --- Convenience wrappers (можно вызывать из обработчиков) ---
         public List<Term> GetAllTerms() => Terms.GetAll();
         public Term GetTermByName(string name) => Terms.GetByName(name);
+        public Term GetTermByID(string id) => Terms.GetById(id);
         public void AddTerm(Term term) => Terms.Add(term);
         public void DeleteTermByName(string name) => Terms.DeleteByName(name);
         public void UpdateTerm(Term term) => Terms.Replace(term);
