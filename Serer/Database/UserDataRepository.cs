@@ -29,6 +29,11 @@ namespace Server.Database
             return _collection.Find(u => u.Username == username).FirstOrDefault();
         }
 
+        public UserData FindByID(string id)
+        {
+            return _collection.Find(u => u.Id == id).FirstOrDefault();
+        }
+
         // Проверка логина/пароля. В текущем виде сравнивает plain-text (нужно хэширование).
         public UserData ValidateCredentials(string username, string password)
         {

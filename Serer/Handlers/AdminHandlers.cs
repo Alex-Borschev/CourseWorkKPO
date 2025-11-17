@@ -66,7 +66,7 @@ namespace Server.Handlers
             try
             {
                 var users = context.Db.GetAllUsers()
-                    .Select(u => new { login = u.Username, role = u.Personality })
+                    .Select(u => new { id = u.Id, login = u.Username, role = u.Personality })
                     .ToList();
 
                 TcpServer.SendResponse(stream, ServerResponse.Ok("Список пользователей получен", users));

@@ -251,7 +251,7 @@ namespace Server.Handlers
                 string theme = themeProp.GetString();
                 string content = contentProp.GetString();
 
-                var recipientData = context.Db.FindUserByLogin(recipient);
+                var recipientData = context.Db.FindUserByID(recipient);
                 if (recipientData == null)
                 {
                     TcpServer.SendResponse(stream, ServerResponse.Error("Пользователь не найден"));

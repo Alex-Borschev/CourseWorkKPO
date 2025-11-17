@@ -33,6 +33,7 @@ namespace Server.Database
 
         public List<UserData> GetAllUsers() => Users.GetAll();
         public UserData FindUserByLogin(string login) => Users.FindByLogin(login);
+        public UserData FindUserByID(string login) => Users.FindByID(login);
         public UserData ValidateUser(string login, string password) => Users.ValidateCredentials(login, password);
         public void AddUser(UserData u) => Users.Add(u);
         public void UpdateUser(UserData u) => Users.Update(u);
