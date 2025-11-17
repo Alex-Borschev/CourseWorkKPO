@@ -152,6 +152,7 @@
     <Compile Include="Database\MongoContext.cs" />
     <Compile Include="Database\TermRepository.cs" />
     <Compile Include="Database\UserDataRepository.cs" />
+    <None Include="Dockerfile" />
     <Compile Include="Handlers\AdminHandlers.cs" />
     <Compile Include="Handlers\AuthHandler.cs" />
     <Compile Include="Handlers\GetTermsHandler.cs" />

@@ -72,19 +72,19 @@ namespace Server.Handlers
                     return;
                 }
 
-                string termName = termProp.GetString();
+                string termID = termProp.GetString();
 
-                var term = context.Db.GetTermByName(termName);
+                var term = context.Db.GetTermByID(termID);
                 if (term == null)
                 {
                     TcpServer.SendResponse(stream, ServerResponse.Error("Термин не найден"));
                     return;
                 }
 
-                context.Db.DeleteTermByName(termName);
+                context.Db.DeleteTermByID(termID);
 
                 TcpServer.SendResponse(stream,
-                    ServerResponse.Ok("Термин успешно удалён", new { term = termName }));
+                    ServerResponse.Ok("Термин успешно удалён", new { term = termID }));
             }
             catch (Exception ex)
             {

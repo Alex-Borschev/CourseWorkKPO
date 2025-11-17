@@ -44,6 +44,11 @@ namespace Server.Database
             _collection.DeleteOne(t => t.term == name);
         }
 
+        public void DeleteByID(string id)
+        {
+            _collection.DeleteOne(t => t.Id == id);
+        }
+
         public void Replace(Term term)
         {
             var filter = Builders<Term>.Filter.Eq(t => t.Id, term.Id);

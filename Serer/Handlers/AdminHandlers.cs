@@ -26,7 +26,7 @@ namespace Server.Handlers
                 string termName = termNameElement.GetString();
                 string suggestion = suggestionElement.GetString();
 
-                string theme = "Предложение правки: " + termName;
+                string theme = termName;
                 string content = suggestion;
                 string author = session.IsAuthenticated ? session.Username : "anonymous";
 

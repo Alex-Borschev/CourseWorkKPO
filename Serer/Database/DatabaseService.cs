@@ -28,6 +28,7 @@ namespace Server.Database
         public Term GetTermByID(string id) => Terms.GetById(id);
         public void AddTerm(Term term) => Terms.Add(term);
         public void DeleteTermByName(string name) => Terms.DeleteByName(name);
+        public void DeleteTermByID(string id) => Terms.DeleteByID(id);
         public void UpdateTerm(Term term) => Terms.Replace(term);
 
         public List<UserData> GetAllUsers() => Users.GetAll();
