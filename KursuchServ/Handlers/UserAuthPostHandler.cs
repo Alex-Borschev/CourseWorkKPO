@@ -14,29 +14,26 @@ namespace Server.Handlers
         {
             http.Response.ContentType = "application/json";
 
-            // Проверка на обязательные поля
+            // Check for required fields
             if (!payload.TryGetProperty("login", out var loginProp) ||
                 !payload.TryGetProperty("password", out var passwordProp))
             {
-                await WriteError(http, "Отсутствуют обязательные поля", 500);
-                Console.WriteLine("Отсутствуют обязательные поля");
+                await WriteError(http, "Required fields are missing", 400);
                 return;
             }
 
-            string login = loginProp.GetString();
-            string password = passwordProp.GetString();
-
-            // Проверка пользователя
+            string? login = loginProp.GetString() ?? "";
+            string? password = passwordProp.GetString() ?? "";
+            
+            // Check user
             var user = context.Db.ValidateUser(login, password);
             if (user == null)
             {
-                await WriteError(http, "Неверные данные", 500);
+                await WriteError(http, "Wrong data", 400);
                 return;
             }
 
             string newToken = context.SessionService.CreateSession(user.Id);
-            Console.WriteLine($"Пользователь авторизован: {user.Username}");
-
             
             await WriteOk(http, new
             {
@@ -46,7 +43,6 @@ namespace Server.Handlers
                 messages = user.Messages,
                 token = newToken
             });
-            Console.WriteLine("Авторизация успешна");
         }
     }
 }

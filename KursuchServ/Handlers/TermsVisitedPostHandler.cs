@@ -16,15 +16,15 @@ namespace Server.Handlers
             {
                 if (!payload.TryGetProperty("term", out var termProp))
                 {
-                    await WriteError(http, "Отсутствует поле term");
+                    await WriteError(http, "The term field is missing", 400);
                     return;
                 }
 
-                string termID = termProp.GetString();
+                string termID = termProp.GetString() ?? "";
                 var term = context.Db.GetTermByID(termID);
                 if (term == null)
                 {
-                    await WriteError(http, "Термин не найден");
+                    await WriteError(http, "Term not found");
                     return;
                 }
 
@@ -35,7 +35,7 @@ namespace Server.Handlers
             }
             catch (Exception ex)
             {
-                await WriteError(http, $"Ошибка при обновлении доступа: {ex}");
+                await WriteError(http, $"Error updating access: {ex}");
             }
         }
     }

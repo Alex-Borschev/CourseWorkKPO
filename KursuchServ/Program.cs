@@ -14,8 +14,6 @@ namespace Server
             {
                 var connectionString = "mongodb://admin:2342@5.35.94.193:27017/admin";
                 var db = new DatabaseService(connectionString, "EthernetDictionary");
-
-                // Запускаем сервер и ждём его завершения
                 await HttpServer.RunAsync(db);
             }
             catch (Exception ex)

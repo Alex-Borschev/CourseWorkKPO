@@ -28,14 +28,13 @@ namespace Server
         {
             if (_handlers.TryGetValue(command, out var handler))
             {
-                // Запускаем обработчик команды
                 await handler.Handle(payload, http, context);
             }
             else
             {
                 var response = new
                 {
-                    message = $"Команда '{command}' не найдена"
+                    message = $"Command '{command}' not found"
                 };
 
                 http.Response.StatusCode = 404;

@@ -15,32 +15,32 @@ namespace Server.Handlers
         {
             try
             {
-                string token = http.Request.Headers["Authorization"];
+                string token = http.Request.Headers["Authorization"].ToString();
                 var session = context.SessionService.ValidateToken(token);
                 if (string.IsNullOrEmpty(session.UserId))
                 {
-                    await WriteError(http, "Пользователь не авторизован", 401);
+                    await WriteError(http, "The user is not authorized", 401);
                     return;
                 }
 
                 if (!payload.TryGetProperty("term", out var termProp) ||
                     !payload.TryGetProperty("note", out var noteProp))
                 {
-                    await WriteError(http, "Неверный формат", 400);
+                    await WriteError(http, "Invalid format", 400);
                     return;
                 }
 
                 var user = context.Db.FindUserByID(session.UserId);
                 if (user == null)
                 {
-                    await WriteError(http, "Пользователь не найден", 404);
+                    await WriteError(http, "User not found", 404);
                     return;
                 }
 
-                string term = termProp.GetString();
-                string noteData = noteProp.GetString();
+                string? term = termProp.GetString() ?? "";
+                string? noteData = noteProp.GetString() ?? "";
 
-                user.Notes ??= new System.Collections.Generic.List<UserNotes>();
+                user.Notes ??= [];
 
                 var existing = user.Notes.FirstOrDefault(n => n.NotedTerm == term);
                 if (existing != null) user.Notes.Remove(existing);
@@ -53,11 +53,11 @@ namespace Server.Handlers
                 });
 
                 context.Db.UpdateUser(user);
-                await WriteOk(http, "Заметка обновлена");
+                await WriteOk(http, "The note has been updated.");
             }
             catch (Exception ex)
             {
-                await WriteError(http, $"Ошибка при добавлении заметки: {ex}", 500);
+                await WriteError(http, $"Error adding note: {ex}", 500);
             }
         }
     }

@@ -17,12 +17,12 @@ namespace Server.Handlers
 
             try
             {
-                string token = http.Request.Headers["Authorization"];
+                string token = http.Request.Headers["Authorization"].ToString();
                 var session = context.SessionService.ValidateToken(token);
 
                 if (string.IsNullOrEmpty(session.UserId))
                 {
-                    await WriteError(http, "Пользователь не авторизован", 401);
+                    await WriteError(http, "The user is not authorized", 401);
                     return;
                 }
                 var user = context.Db.FindUserByID(session.UserId);
@@ -30,12 +30,12 @@ namespace Server.Handlers
                 if (!payload.TryGetProperty("termName", out var termNameElement) ||
                     !payload.TryGetProperty("suggestion", out var suggestionElement))
                 {
-                    await WriteError(http, "Недостаточно данных для предложения правки", 400);
+                    await WriteError(http, "Invalid data", 400);
                     return;
                 }
 
-                string termName = termNameElement.GetString();
-                string suggestion = suggestionElement.GetString();
+                string? termName = termNameElement.GetString() ?? "";
+                string? suggestion = suggestionElement.GetString() ?? "";
 
                 string author = user.Username;
 

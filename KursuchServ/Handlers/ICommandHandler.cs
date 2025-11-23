@@ -6,17 +6,17 @@ namespace Server
     public interface ICommandHandler
     {
         /// <summary>
-        /// Имя команды, например "AUTH", "PING", "REGISTER".
+        /// Name of command
         /// </summary>
         string Command { get; }
 
         /// <summary>
-        /// Обработка команды.
+        /// Command handler.
         /// </summary>
-        /// <param name="payload">JSON тело запроса.</param>
-        /// <param name="http">HttpContext, через него пишем ответ.</param>
-        /// <param name="context">Глобальный серверный контекст.</param>
-        /// <param name="session">Сессия клиента.</param>
+        /// <param name="payload">JSON body.</param>
+        /// <param name="http">HttpContext, to provide user the answer.</param>
+        /// <param name="context">Global context.</param>
+        /// <param name="session">Client session.</param>
         Task Handle(JsonElement payload, HttpContext http, ServerContext context);
     }
 }

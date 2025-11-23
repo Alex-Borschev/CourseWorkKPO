@@ -14,32 +14,32 @@ namespace Server.Handlers
         {
             try
             {
-                string token = http.Request.Headers["Authorization"].FirstOrDefault();
+                string token = http.Request.Headers["Authorization"].ToString();
                 var session = context.SessionService.ValidateToken(token);
                 if (string.IsNullOrEmpty(session.UserId))
                 {
-                    await WriteError(http, "Пользователь не авторизован", 401);
+                    await WriteError(http, "The user is not authorized", 401);
                     return;
                 }
 
                 if (!payload.TryGetProperty("term", out var termProp) ||
                     !payload.TryGetProperty("isFavorite", out var isFavProp))
                 {
-                    await WriteError(http, "Некорректные данные", 400);
+                    await WriteError(http, "Incorrect data", 400);
                     return;
                 }
 
-                string term = termProp.GetString();
+                string? term = termProp.GetString() ?? "";
                 bool isFavorite = isFavProp.GetBoolean();
 
                 var user = context.Db.FindUserByID(session.UserId);
                 if (user == null)
                 {
-                    await WriteError(http, "Пользователь не найден", 404);
+                    await WriteError(http, "User not found", 404);
                     return;
                 }
 
-                user.Favorites ??= new System.Collections.Generic.List<string>();
+                user.Favorites ??= [];
 
                 if (isFavorite)
                 {
@@ -55,7 +55,7 @@ namespace Server.Handlers
             }
             catch (Exception ex)
             {
-                await WriteError(http, $"Ошибка при обновлении избранного: {ex}", 500);
+                await WriteError(http, $"Error updating favorites: {ex}", 500);
             }
         }
     }

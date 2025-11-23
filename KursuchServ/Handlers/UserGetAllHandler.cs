@@ -30,7 +30,7 @@ namespace Server.Handlers
             }
             catch (Exception ex)
             {
-                await WriteError(http, $"Ошибка: {ex}", 500);
+                await WriteError(http, $"Error: {ex}", 500);
             }
         }
     }

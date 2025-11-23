@@ -16,20 +16,20 @@ namespace Server.Handlers
             {
                 if (!payload.TryGetProperty("termData", out var termJson))
                 {
-                    await WriteError(http, "Отсутствует поле termData");
+                    await WriteError(http, "The termData field is missing", 400);
                     return;
                 }
 
                 var newTerm = JsonSerializer.Deserialize<Term>(termJson.GetRawText());
                 if (newTerm == null)
                 {
-                    await WriteError(http, "Ошибка десериализации термина");
+                    await WriteError(http, "Invalid data", 400);
                     return;
                 }
 
                 if (context.Db.GetTermByName(newTerm.term) != null)
                 {
-                    await WriteError(http, "Такой термин уже существует");
+                    await WriteError(http, "This term already exists", 401);
                     return;
                 }
 
@@ -42,7 +42,7 @@ namespace Server.Handlers
             }
             catch (Exception ex)
             {
-                await WriteError(http, $"Ошибка при добавлении термина: {ex}");
+                await WriteError(http, $"Error adding term: {ex}");
             }
         }
     }

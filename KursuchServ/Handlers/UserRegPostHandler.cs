@@ -22,19 +22,18 @@ namespace Server.Handlers
                 if (!payload.TryGetProperty("login", out var loginProp) ||
                     !payload.TryGetProperty("password", out var passProp))
                 {
-                    await WriteError(http, "Неверный формат", 400);
+                    await WriteError(http, "Invalid format", 400);
                     return;
                 }
 
-                string login = loginProp.GetString();
-                string password = passProp.GetString();
+                string? login = loginProp.GetString() ?? "";
+                string? password = passProp.GetString() ?? "";
 
-                // Роль пользователя
                 string role = "User";
 
                 if (payload.TryGetProperty("adminKey", out var keyProp))
                 {
-                    string key = keyProp.GetString();
+                    string? key = keyProp.GetString() ?? "";
 
                     if (key == ADMIN_KEY)
                     {
@@ -42,19 +41,17 @@ namespace Server.Handlers
                     }
                     else
                     {
-                        await WriteError(http, "Неверный adminKey", 400);
+                        await WriteError(http, "Wrong adminKey", 400);
                         return;
                     }
                 }
 
-                // Проверяем, существует ли пользователь
                 if (context.Db.FindUserByLogin(login) != null)
                 {
-                    await WriteError(http, "Пользователь уже существует", 400);
+                    await WriteError(http, "The user already exists", 400);
                     return;
                 }
 
-                // Создание нового пользователя
                 var newUser = new UserData
                 {
                     Username = login,
@@ -76,7 +73,7 @@ namespace Server.Handlers
             }
             catch (Exception ex)
             {
-                await WriteError(http, $"Ошибка регистрации: {ex}", 500);
+                await WriteError(http, $"Registration error: {ex}", 500);
                 return;
             }
         }

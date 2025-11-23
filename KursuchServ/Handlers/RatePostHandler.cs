@@ -21,32 +21,32 @@ namespace Server.Handlers
                 if (!payload.TryGetProperty("term", out var termProp) ||
                     !payload.TryGetProperty("rating", out var ratingProp))
                 {
-                    await WriteError(http, "Некорректные данные", 500);
+                    await WriteError(http, "Invalid data", 500);
                     return;
                 }
-                string token = http.Request.Headers["Authorization"];
+                string token = http.Request.Headers["Authorization"].ToString();
                 var session = context.SessionService.ValidateToken(token);
 
                 if (string.IsNullOrEmpty(session.UserId))
                 {
-                    await WriteError(http, "Пользователь не авторизован", 401);
+                    await WriteError(http, "The user is not authorized", 401);
                     return;
                 }
 
-                string termId = termProp.GetString();
+                string? termId = termProp.GetString() ?? "";
                 int rating = ratingProp.GetInt32();
-
+                
                 var user = context.Db.FindUserByID(session.UserId);
                 if (user == null)
                 {
-                    await WriteError(http, "Пользователь не найден", 500);
+                    await WriteError(http, "User not found", 500);
                     return;
                 }
 
                 var term = context.Db.GetTermByID(termId);
                 if (term == null)
                 {
-                    await WriteError(http, "Термин не найден", 500);
+                    await WriteError(http, "Term not found", 500);
                     return;
                 }
 
@@ -107,7 +107,7 @@ namespace Server.Handlers
             }
             catch (Exception ex)
             {
-                await WriteError(http, $"Ошибка при сохранении оценки: {ex}", 500);
+                await WriteError(http, $"Error saving rating: {ex}", 500);
             }
         }
     }

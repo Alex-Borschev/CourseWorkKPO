@@ -30,7 +30,5 @@ namespace Server
                 Console.WriteLine("Логирование подключения: " + logEntry);
             }
         }
-
-        // Можно расширить: LogInfo, LogError и т.д.
     }
 }

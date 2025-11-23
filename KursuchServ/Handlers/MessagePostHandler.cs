@@ -15,12 +15,12 @@ namespace Server.Handlers
         {
             try
             {
-                string token = http.Request.Headers["Authorization"];
+                string token = http.Request.Headers["Authorization"].ToString();
                 var session = context.SessionService.ValidateToken(token);
 
                 if (string.IsNullOrEmpty(session.UserId))
                 {
-                    await WriteError(http, "Пользователь не авторизован", 401);
+                    await WriteError(http, "The user is not authorized", 401);
                     return;
                 }
 
@@ -28,22 +28,22 @@ namespace Server.Handlers
                     !payload.TryGetProperty("theme", out var themeProp) ||
                     !payload.TryGetProperty("content", out var contentProp))
                 {
-                    await WriteError(http, "Некорректные данные", 400);
+                    await WriteError(http, "Invalid data", 400);
                     return;
                 }
 
-                string recipientId = toProp.GetString();
-                string theme = themeProp.GetString();
-                string content = contentProp.GetString();
-
+                string? recipientId = toProp.GetString() ?? "";
+                string? theme = themeProp.GetString() ?? "";
+                string? content = contentProp.GetString() ?? "";
+                
                 var recipient = context.Db.FindUserByID(recipientId);
                 if (recipient == null)
                 {
-                    await WriteError(http, "Пользователь не найден", 404);
+                    await WriteError(http, "User not found", 404);
                     return;
                 }
 
-                recipient.Messages ??= new System.Collections.Generic.List<MessageEntry>();
+                recipient.Messages ??= [];
 
                 var user = context.Db.FindUserByID(session.UserId);
 
@@ -60,7 +60,7 @@ namespace Server.Handlers
             }
             catch (Exception ex)
             {
-                await WriteError(http, $"Ошибка при отправке сообщения: {ex}", 500);
+                await WriteError(http, $"Error sending message: {ex}", 500);
             }
         }
     }

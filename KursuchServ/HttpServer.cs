@@ -76,7 +76,7 @@ namespace Server
             }
             catch (Exception ex)
             {
-                var response = new { message = $"Ошибка: {ex}" };
+                var response = new { message = $"Error: {ex}" };
                 http.Response.StatusCode = 500;
                 http.Response.ContentType = "application/json";
                 await http.Response.WriteAsync(JsonSerializer.Serialize(response));

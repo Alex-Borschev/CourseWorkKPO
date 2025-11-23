@@ -12,8 +12,15 @@ namespace Server.Handlers
 
         public override async Task Handle(JsonElement payload, HttpContext http, ServerContext context)
         {
-            var terms = context.Db.GetAllTerms();
-            await WriteOk(http, terms);
+            try
+            {
+                var terms = context.Db.GetAllTerms();
+                await WriteOk(http, terms);
+            }
+            catch (Exception ex)
+            {
+                await WriteError(http, $"Error getting terms: {ex}");
+            }
         }
     }
 }

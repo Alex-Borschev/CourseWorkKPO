@@ -27,7 +27,7 @@ namespace Server.Handlers
             }
             catch (Exception ex)
             {
-                await WriteError(http, "Ошибка при получении категорий", 500);
+                await WriteError(http, $"Error getting categories: {ex}", 500);
                 return;
             }
         }
