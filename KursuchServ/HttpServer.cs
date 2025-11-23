@@ -65,7 +65,7 @@ namespace Server
                 HandleHttpRequest(context, serverContext);
                 await next();
             });
-
+            
             await app.RunAsync("http://0.0.0.0:8888");
         }
 
