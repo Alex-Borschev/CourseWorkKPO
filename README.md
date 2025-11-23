@@ -1,4 +1,4 @@
-# Ethernet Terms Dictionary - TCP Server
+# Ethernet Terms Dictionary - HTTP Server
 
 ## Overview
 This project is a backend server for managing an Ethernet terms dictionary.  
