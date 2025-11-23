@@ -8,6 +8,7 @@ using Server.Database;
 using static System.Net.WebRequestMethods;
 using MongoDB.Driver;
 using Server.Auth;
+using Serilog;
 
 namespace Server
 {
@@ -29,7 +30,14 @@ namespace Server
         public static async Task RunAsync(Database.DatabaseService db = null)
         {
             var builder = WebApplication.CreateBuilder();
+            // Настройка Serilog
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .WriteTo.File("Logs/app.log", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
 
+            builder.Host.UseSerilog();
             var app = builder.Build();
 
             var serverContext = new ServerContext(db ?? new Database.DatabaseService());

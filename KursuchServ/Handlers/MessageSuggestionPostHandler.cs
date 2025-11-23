@@ -42,7 +42,7 @@ namespace Server.Handlers
                 var admins = context.Db.GetAllUsers()
                     .Where(u => u.Personality == "Admin")
                     .ToList();
-
+                
                 foreach (var admin in admins)
                 {
                     if (admin.Messages == null)
