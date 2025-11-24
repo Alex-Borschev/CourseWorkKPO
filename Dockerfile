@@ -1,25 +1,28 @@
-# ====== Build stage ======
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY KursuchServ.sln ./
-COPY KursuchServ/KursuchServ.csproj KursuchServ/
+# Копируем csproj файлы проектов, которые нужны
+COPY Entities/EntitiesLibrary.csproj Entities/
+COPY PasswordHasher/PasswordHasherLibrary.csproj PasswordHasher/
+COPY Server/Server.csproj Server/
+COPY TokenSession/TokenServiceLibrary.csproj TokenSession/
 
-RUN dotnet restore KursuchServ.sln
+# Восстанавливаем зависимости только этих проектов
+RUN dotnet restore Server/Server.csproj
 
-COPY KursuchServ/ ./KursuchServ/
+# Копируем весь код
+COPY . .
 
-RUN dotnet publish KursuchServ/KursuchServ.csproj -c Release -o /app/publish
+# Публикуем Server
+WORKDIR /src/Server
+RUN dotnet publish -c Release -o /app
 
-
-# ====== Runtime stage ======
+# Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-
-COPY --from=build /app/publish .
-
+COPY --from=build /app ./
 RUN mkdir -p /app/uploads
-
-EXPOSE 8000
-
-ENTRYPOINT ["dotnet", "KursuchServ.dll"]
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV DOTNET_URLS=http://+:8888
+ENTRYPOINT ["dotnet", "Server.dll"]
