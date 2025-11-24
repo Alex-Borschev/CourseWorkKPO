@@ -7,6 +7,10 @@
 *.env
 .env
 
+# Uploads
+uploads
+uploads/
+
 # User-specific files
 *.rsuser
 *.suo
