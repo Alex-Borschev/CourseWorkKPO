@@ -1,0 +1,48 @@
+using System.Text.Json;
+
+namespace Server.Handlers
+{
+
+    public class UserPutHandler : CommandHandler
+    {
+        public override string Command => "PUT/api/user";
+
+        public override async Task Handle(JsonElement payload, HttpContext http, ServerContext context)
+        {
+            try
+            {
+                string token = http.Request.Headers["Authorization"].ToString();
+
+                var session = context.SessionService.ValidateToken(token);
+                if (session == null)
+                {
+                    await WriteError(http, "The user is not authorized", 401);
+                    return;
+                }
+
+                var user = context.Db.FindUserByID(session.UserId);
+                if (user == null)
+                {
+                    await WriteError(http, "User not found", 404);
+                    return;
+                }
+
+                await WriteOk(http, new
+                {
+                    id = user.Id,
+                    username = user.Username,
+                    favorites = user.Favorites,
+                    messages = user.Messages,
+                    notes = user.Notes,
+                    personality = user.Personality,
+                    ratedTerms = user.RatedTerms,
+                    registrationDate = user.RegistrationDate
+                });
+            }
+            catch (Exception ex)
+            {
+                await WriteError(http, $"Error receiving data: {ex}", 500);
+            }
+        }
+    }
+}
