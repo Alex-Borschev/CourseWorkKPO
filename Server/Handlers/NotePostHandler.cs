@@ -49,7 +49,7 @@ namespace Server.Handlers
                 });
 
                 context.Db.UpdateUser(user);
-                await WriteOk(http, "The note has been updated.");
+                await WriteOk(http, new { message = "The note has been updated." });
             }
             catch (Exception ex)
             {

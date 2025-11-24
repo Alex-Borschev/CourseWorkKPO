@@ -55,7 +55,7 @@ namespace Server.Handlers
                     context.Db.UpdateUser(admin);
                 }
 
-                await WriteOk(http);
+                await WriteOk(http, new { message = "Suggestion has been sent" });
             }
             catch (Exception ex)
             {

@@ -2,7 +2,7 @@
 
 namespace TokenServiceLibrary;
 
-public class TokenSessionService
+public class TokenSessionService : ITokenSessionService
 {
     private readonly ConcurrentDictionary<string, SessionData> _sessions
         = new ConcurrentDictionary<string, SessionData>();

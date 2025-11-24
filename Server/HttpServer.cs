@@ -9,10 +9,10 @@ namespace Server
     public class ServerContext
     {
         public ServerRouter Router { get; set; }
-        public DatabaseService Db { get; set; }
-        public TokenSessionService SessionService { get; set; }
+        public IDatabaseService Db { get; set; }
+        public ITokenSessionService SessionService { get; set; }
 
-        public ServerContext(DatabaseService db)
+        public ServerContext(IDatabaseService db)
         {
             Db = db;
             Router = new ServerRouter();
@@ -69,7 +69,7 @@ namespace Server
             serverContext.Router.RegisterHandler(new Handlers.UserGetAllHandler());
             serverContext.Router.RegisterHandler(new Handlers.RatePostHandler());
             serverContext.Router.RegisterHandler(new Handlers.UploadPostHandler());
-            serverContext.Router.RegisterHandler(new Handlers.TermUpdateHandler());
+            serverContext.Router.RegisterHandler(new Handlers.TermsPutHandler());
 
             // Middleware для кастомного роутинга
             app.Use(async (context, next) =>

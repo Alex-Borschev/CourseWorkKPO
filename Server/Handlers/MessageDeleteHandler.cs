@@ -29,7 +29,7 @@ namespace Server.Handlers
 
                 user.Messages?.Clear();
                 context.Db.UpdateUser(user);
-                await WriteOk(http);
+                await WriteOk(http, new { message = "Messages has been deleted" });
             }
             catch (Exception ex)
             {

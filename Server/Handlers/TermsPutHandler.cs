@@ -3,7 +3,7 @@ using EntitiesLibrary;
 
 namespace Server.Handlers
 {
-    public class TermUpdateHandler : CommandHandler
+    public class TermsPutHandler : CommandHandler
     {
         public override string Command => "PUT/api/terms";
 

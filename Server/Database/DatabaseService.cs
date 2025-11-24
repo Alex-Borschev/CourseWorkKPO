@@ -8,7 +8,7 @@ using EntitiesLibrary;
 
 namespace Server.Database
 {
-    public class DatabaseService
+    public class DatabaseService : IDatabaseService
     {
         public MongoContext Context { get; }
         public TermRepository Terms { get; }
@@ -21,7 +21,6 @@ namespace Server.Database
             Users = new UserDataRepository(Context);
         }
 
-        // --- Convenience wrappers (можно вызывать из обработчиков) ---
         public List<Term> GetAllTerms() => Terms.GetAll();
         public Term GetTermByName(string name) => Terms.GetByName(name);
         public Term GetTermByID(string id) => Terms.GetById(id);
