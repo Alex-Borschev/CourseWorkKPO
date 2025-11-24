@@ -17,6 +17,9 @@ namespace Server
             _handlers[handler.Command] = handler;
         }
 
+        public bool HasRoute(string command) => _handlers.ContainsKey(command);
+
+
         /// <summary>
         /// Основной метод маршрутизации HTTP-команд.
         /// </summary>

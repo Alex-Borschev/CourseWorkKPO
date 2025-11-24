@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using DotNetEnv;
 using Microsoft.AspNetCore.Http;
 
 namespace Server.Handlers
@@ -15,7 +16,24 @@ namespace Server.Handlers
             try
             {
                 var terms = context.Db.GetAllTerms();
-                await WriteOk(http, terms);
+                string host = $"http://{Env.GetString("HOST")}:{Env.GetString("PORT")}";
+
+                var result = terms.Select(t => new
+                {
+                    id = t.Id,
+                    term = t.term,
+                    category = t.category,
+                    popularity = t.popularity,
+                    difficultyLevel = t.difficultyLevel,
+                    addedDate = t.addedDate,
+                    difficultyRatings = t.difficultyRatings,
+
+                    mediaUrl = t.media != null && t.media.Count > 0
+                        ? host + t.media[0]?.url
+                        : null
+                }).ToList();
+
+                await WriteOk(http, result);
             }
             catch (Exception ex)
             {

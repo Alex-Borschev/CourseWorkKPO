@@ -32,7 +32,17 @@ namespace Server.Handlers
                     return;
                 }
 
-                await WriteOk(http, user);
+                await WriteOk(http, new
+                {
+                    id = user.Id,
+                    username = user.Username,
+                    favorites = user.Favorites,
+                    messages = user.Messages,
+                    notes = user.Notes,
+                    personality = user.Personality,
+                    ratedTerms = user.RatedTerms,
+                    registrationDate = user.RegistrationDate
+                });
             }
             catch (Exception ex)
             {

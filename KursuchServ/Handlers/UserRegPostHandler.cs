@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using DotNetEnv;
 
 namespace Server.Handlers
 {
@@ -11,7 +12,7 @@ namespace Server.Handlers
     {
         public override string Command => "POST/api/user/reg";
 
-        private const string ADMIN_KEY = "SECRET_KEY_2025";
+        private string ADMIN_KEY = Env.GetString("ADMIN_KEY");
 
         public override async Task Handle(JsonElement payload, HttpContext http, ServerContext context)
         {
@@ -28,6 +29,11 @@ namespace Server.Handlers
 
                 string? login = loginProp.GetString() ?? "";
                 string? password = passProp.GetString() ?? "";
+                if (login == "" || password == "")
+                {
+                    await WriteError(http, "Invalid format", 400);
+                    return;
+                }
 
                 string role = "User";
 

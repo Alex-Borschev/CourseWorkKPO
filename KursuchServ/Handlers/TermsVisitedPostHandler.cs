@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text.Json;
 using System.Threading.Tasks;
+using DotNetEnv;
 using Microsoft.AspNetCore.Http;
 using SharedLibrary;
 
@@ -27,11 +28,17 @@ namespace Server.Handlers
                     await WriteError(http, "Term not found");
                     return;
                 }
-
+                string host = $"http://{Env.GetString("HOST")}:{Env.GetString("PORT")}";
                 term.lastAccessed = DateTime.Now;
+                term.popularity = term.popularity + 1;
                 context.Db.UpdateTerm(term);
 
-                await WriteOk(http, new { term = termID, lastAccessed = term.lastAccessed });
+                if (term.media != null && term.media.Count > 0 && !string.IsNullOrEmpty(term.media[0]?.url))
+                {
+                    term.media[0].url = $"{host}{term.media[0].url}";
+                }
+
+                await WriteOk(http, term);
             }
             catch (Exception ex)
             {

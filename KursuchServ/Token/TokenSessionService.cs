@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 
-namespace Server.Auth
+namespace KursuchServ.Token
 {
     public class TokenSessionService
     {
-        // Хранилище всех активных сессий
         private readonly ConcurrentDictionary<string, SessionData> _sessions
             = new ConcurrentDictionary<string, SessionData>();
 
-        // Время жизни токена
         private readonly TimeSpan _sessionLifetime;
 
         public TokenSessionService(TimeSpan sessionLifetime)
@@ -17,9 +15,6 @@ namespace Server.Auth
             _sessionLifetime = sessionLifetime;
         }
 
-        // -----------------------------
-        // Создаёт новую сессию
-        // -----------------------------
         public string CreateSession(string userId)
         {
             string token = Guid.NewGuid().ToString("N");
@@ -36,9 +31,6 @@ namespace Server.Auth
             return token;
         }
 
-        // -----------------------------
-        // Проверяет токен и возвращает данные сессии
-        // -----------------------------
         public SessionData ValidateToken(string token)
         {
             if (token == null) return null;
@@ -61,18 +53,12 @@ namespace Server.Auth
             return null; // токен невалидный
         }
 
-        // -----------------------------
-        // Удаление сессии
-        // -----------------------------
         public void RemoveSession(string token)
         {
             if (token == null) return;
             _sessions.TryRemove(token, out _);
         }
 
-        // -----------------------------
-        // Очистка всех истёкших сессий
-        // -----------------------------
         public void CleanupExpired()
         {
             var now = DateTime.UtcNow;
@@ -85,13 +71,5 @@ namespace Server.Auth
                 }
             }
         }
-    }
-
-    // Модель данных сессии
-    public class SessionData
-    {
-        public required string UserId { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime ExpiresAt { get; set; }
     }
 }

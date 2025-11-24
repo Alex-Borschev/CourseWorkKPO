@@ -8,6 +8,7 @@
 using MongoDB.Driver;
 using SharedLibrary;
 using System.Collections.Generic;
+using Server;
 
 namespace Server.Database
 {
@@ -38,11 +39,19 @@ namespace Server.Database
         // Проверка логина/пароля. В текущем виде сравнивает plain-text (нужно хэширование).
         public UserData ValidateCredentials(string username, string password)
         {
-            return _collection.Find(u => u.Username == username && u.Password == password).FirstOrDefault();
+            var user = _collection.Find(u => u.Username == username).FirstOrDefault();
+
+            if (user == null)
+                return null;
+
+            bool valid = PasswordHasher.VerifyPassword(password, user.Password);
+
+            return valid ? user : null;
         }
 
-        public void Add(UserData user)
+        public void RegisterUser(UserData user)
         {
+            user.Password = PasswordHasher.HashPassword(user.Password);
             _collection.InsertOne(user);
         }
 

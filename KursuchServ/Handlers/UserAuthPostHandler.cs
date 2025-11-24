@@ -25,7 +25,6 @@ namespace Server.Handlers
             string? login = loginProp.GetString() ?? "";
             string? password = passwordProp.GetString() ?? "";
             
-            // Check user
             var user = context.Db.ValidateUser(login, password);
             if (user == null)
             {

@@ -1,4 +1,5 @@
-﻿using Server;
+﻿using DotNetEnv;
+using Server;
 using Server.Database;
 using System;
 using System.Threading.Tasks;
@@ -10,9 +11,10 @@ namespace Server
         static async Task Main(string[] args)
         {
             Console.Title = "Ethernet Terms - HTTP Server";
+            Env.Load();
             try
             {
-                var connectionString = "mongodb://admin:2342@5.35.94.193:27017/admin";
+                var connectionString = Env.GetString("DB_CONNECTION");
                 var db = new DatabaseService(connectionString, "EthernetDictionary");
                 await HttpServer.RunAsync(db);
             }

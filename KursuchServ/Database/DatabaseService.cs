@@ -35,7 +35,7 @@ namespace Server.Database
         public UserData FindUserByLogin(string login) => Users.FindByLogin(login);
         public UserData FindUserByID(string login) => Users.FindByID(login);
         public UserData ValidateUser(string login, string password) => Users.ValidateCredentials(login, password);
-        public void AddUser(UserData u) => Users.Add(u);
+        public void AddUser(UserData u) => Users.RegisterUser(u);
         public void UpdateUser(UserData u) => Users.Update(u);
         public void DeleteUser(string login) => Users.DeleteByLogin(login);
     }

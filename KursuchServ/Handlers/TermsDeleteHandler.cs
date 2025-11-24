@@ -17,7 +17,7 @@ namespace Server.Handlers
             {
                 if (!payload.TryGetProperty("term", out var termProp))
                 {
-                    await WriteError(http, "The term field is missing");
+                    await WriteError(http, "The term field is missing", 400);
                     return;
                 }
 
@@ -26,7 +26,7 @@ namespace Server.Handlers
                 var term = context.Db.GetTermByID(termID);
                 if (term == null)
                 {
-                    await WriteError(http, "Term not found");
+                    await WriteError(http, "Term not found", 500);
                     return;
                 }
 
