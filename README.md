@@ -1,4 +1,4 @@
-# Ethernet Terms Dictionary - TCP Server
+# Ethernet Terms Dictionary - HTTP Server
 
 ## Overview
 This project is a backend server for managing an Ethernet terms dictionary.  
@@ -28,7 +28,7 @@ The server is built with **.NET 8** and uses **MongoDB** for data storage.
 
 ---
 
-## Folder Structure
+## Routes Structure
 - **/user** – Handles user authentication, registration, and profile management.
 - **/terms** – Handles CRUD operations for terms, visited terms, and favorites.
 - **/categories** – Provides access to all term categories.
