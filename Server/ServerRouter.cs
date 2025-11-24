@@ -19,10 +19,6 @@ namespace Server
 
         public bool HasRoute(string command) => _handlers.ContainsKey(command);
 
-
-        /// <summary>
-        /// Основной метод маршрутизации HTTP-команд.
-        /// </summary>
         public async Task Route(
             string command,
             JsonElement payload,

@@ -8,6 +8,14 @@ namespace Server.Handlers
 
         public override async Task Handle(JsonElement payload, HttpContext http, ServerContext context)
         {
+            string token = http.Request.Headers["Authorization"].ToString();
+            var session = context.SessionService.ValidateToken(token);
+            if (session == null)
+            {
+                await WriteError(http, "The user is not authorized", 401);
+                return;
+            }
+            
             http.Response.ContentType = "application/json";
 
             try

@@ -7,7 +7,7 @@ public class Term
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public string Id { get; set; }
+    public string id { get; set; }
 
     public string term { get; set; }
     public string definition { get; set; }

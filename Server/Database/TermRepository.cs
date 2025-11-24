@@ -30,7 +30,7 @@ namespace Server.Database
 
         public Term GetById(string id)
         {
-            return _collection.Find(t => t.Id == id).FirstOrDefault();
+            return _collection.Find(t => t.id == id).FirstOrDefault();
         }
 
         public void Add(Term term)
@@ -45,12 +45,12 @@ namespace Server.Database
 
         public void DeleteByID(string id)
         {
-            _collection.DeleteOne(t => t.Id == id);
+            _collection.DeleteOne(t => t.id == id);
         }
 
         public void Replace(Term term)
         {
-            var filter = Builders<Term>.Filter.Eq(t => t.Id, term.Id);
+            var filter = Builders<Term>.Filter.Eq(t => t.id, term.id);
             _collection.ReplaceOne(filter, term);
         }
     }

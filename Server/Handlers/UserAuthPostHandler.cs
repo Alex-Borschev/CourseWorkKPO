@@ -10,7 +10,6 @@ namespace Server.Handlers
         {
             http.Response.ContentType = "application/json";
 
-            // Check for required fields
             if (!payload.TryGetProperty("login", out var loginProp) ||
                 !payload.TryGetProperty("password", out var passwordProp))
             {

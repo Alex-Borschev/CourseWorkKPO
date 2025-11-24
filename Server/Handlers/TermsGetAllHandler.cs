@@ -16,7 +16,7 @@ namespace Server.Handlers
 
                 var result = terms.Select(t => new
                 {
-                    id = t.Id,
+                    id = t.id,
                     term = t.term,
                     category = t.category,
                     popularity = t.popularity,

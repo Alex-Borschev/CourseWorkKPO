@@ -8,6 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Logs\**" />
+    <Compile Remove="uploads\**" />
+    <Content Remove="Logs\**" />
+    <Content Remove="uploads\**" />
+    <EmbeddedResource Remove="Logs\**" />
+    <EmbeddedResource Remove="uploads\**" />
+    <None Remove="Logs\**" />
+    <None Remove="uploads\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.3.0" />
     <PackageReference Include="MongoDB.Bson" Version="3.5.1" />

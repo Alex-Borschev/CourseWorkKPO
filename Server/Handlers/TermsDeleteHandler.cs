@@ -11,6 +11,19 @@ namespace Server.Handlers
         {
             try
             {
+                string token = http.Request.Headers["Authorization"].ToString();
+                var session = context.SessionService.ValidateToken(token);
+                if (session == null)
+                {
+                    await WriteError(http, "The user is not authorized", 401);
+                    return;
+                }
+                var user = context.Db.FindUserByID(session.UserId);
+                if (user.Personality == "User")
+                {
+                    await WriteError(http, "The user can not delete terms", 403);
+                    return;
+                }
                 if (!payload.TryGetProperty("term", out var termProp))
                 {
                     await WriteError(http, "The term field is missing", 400);

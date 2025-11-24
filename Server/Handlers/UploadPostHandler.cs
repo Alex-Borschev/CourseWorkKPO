@@ -10,7 +10,6 @@ namespace Server.Handlers
         {
             try
             {
-                Console.WriteLine(12345);
                 if (!payload.TryGetProperty("name", out var nameProp) ||
                     !payload.TryGetProperty("base64", out var baseProp))
                 {
@@ -27,7 +26,6 @@ namespace Server.Handlers
                     return;
                 }
 
-                // Convert base64 -> byte[]
                 byte[] bytes;
                 try
                 {
@@ -39,21 +37,17 @@ namespace Server.Handlers
                     return;
                 }
 
-                // Генерируем имя файла
                 string extension = Path.GetExtension(fileNameFromClient) ?? ".jpg";
                 string newFileName = Guid.NewGuid().ToString() + extension;
 
-                // Папка для загрузок
                 string uploadFolder = Path.Combine(AppContext.BaseDirectory, "uploads");
 
                 if (!Directory.Exists(uploadFolder))
                     Directory.CreateDirectory(uploadFolder);
 
-                // Путь до файла
                 string filePath = Path.Combine(uploadFolder, newFileName);
                 await File.WriteAllBytesAsync(filePath, bytes);
 
-                // URL для клиента
                 string fileUrl = "/uploads/" + newFileName;
 
                 await WriteOk(http, new { url = fileUrl });

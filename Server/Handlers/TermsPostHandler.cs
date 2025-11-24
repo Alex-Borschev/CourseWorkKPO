@@ -11,6 +11,20 @@ namespace Server.Handlers
         {
             try
             {
+                string token = http.Request.Headers["Authorization"].ToString();
+                var session = context.SessionService.ValidateToken(token);
+                if (session == null)
+                {
+                    await WriteError(http, "The user is not authorized", 401);
+                    return;
+                }
+
+                var user = context.Db.FindUserByID(session.UserId);
+                if (user.Personality == "User")
+                {
+                    await WriteError(http, "The user can not add terms", 403);
+                }
+
                 if (!payload.TryGetProperty("termData", out var termJson))
                 {
                     await WriteError(http, "The termData field is missing", 400);
@@ -32,9 +46,9 @@ namespace Server.Handlers
 
                 newTerm.addedDate = DateTime.Now;
                 newTerm.lastAccessed = DateTime.MinValue;
+                newTerm.author = user.Username;
 
                 context.Db.AddTerm(newTerm);
-
                 await WriteOk(http, new { term = newTerm.term });
             }
             catch (Exception ex)
